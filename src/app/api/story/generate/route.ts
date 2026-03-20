@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateStory, generateStoryFromDrawing, generateImage } from "@/lib/ai"
+import { rateLimit } from "@/lib/rate-limit"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 stories per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "anonymous"
+    const { allowed } = rateLimit(ip, 10, 60_000)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const {
       childName,
@@ -18,9 +29,24 @@ export async function POST(request: NextRequest) {
       generateImages = true,
     } = body as StoryGenerationRequest & { generateImages?: boolean }
 
-    if (!childName || !childAge || !companion) {
+    // Input validation
+    if (!childName || typeof childName !== "string" || childName.length > 50) {
       return NextResponse.json(
-        { error: "Missing required fields: childName, childAge, companion" },
+        { error: "Invalid child name" },
+        { status: 400 }
+      )
+    }
+
+    if (!childAge || typeof childAge !== "number" || childAge < 1 || childAge > 6) {
+      return NextResponse.json(
+        { error: "Age must be between 1 and 6" },
+        { status: 400 }
+      )
+    }
+
+    if (!companion) {
+      return NextResponse.json(
+        { error: "Missing required fields: companion" },
         { status: 400 }
       )
     }
