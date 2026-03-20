@@ -58,22 +58,30 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 overflow-hidden">
-        {/* Background stars */}
+        {/* Background stars - deterministic positions to avoid hydration mismatch */}
         <div className="absolute inset-0 pointer-events-none">
-          {[...Array(20)].map((_, i) => (
+          {[
+            { x: 12, y: 8, d: 0, s: 14 }, { x: 85, y: 15, d: 0.3, s: 10 },
+            { x: 45, y: 5, d: 0.6, s: 18 }, { x: 72, y: 22, d: 0.9, s: 12 },
+            { x: 28, y: 30, d: 1.2, s: 16 }, { x: 92, y: 35, d: 1.5, s: 9 },
+            { x: 8, y: 42, d: 1.8, s: 20 }, { x: 55, y: 48, d: 2.1, s: 11 },
+            { x: 38, y: 55, d: 2.4, s: 15 }, { x: 78, y: 60, d: 2.7, s: 13 },
+            { x: 18, y: 68, d: 0.2, s: 17 }, { x: 65, y: 72, d: 0.5, s: 10 },
+            { x: 42, y: 78, d: 0.8, s: 19 }, { x: 88, y: 82, d: 1.1, s: 12 },
+            { x: 5, y: 88, d: 1.4, s: 14 }, { x: 52, y: 92, d: 1.7, s: 16 },
+            { x: 32, y: 18, d: 2.0, s: 11 }, { x: 95, y: 50, d: 2.3, s: 15 },
+            { x: 22, y: 95, d: 2.6, s: 13 }, { x: 60, y: 38, d: 2.9, s: 18 },
+          ].map((star, i) => (
             <div
               key={i}
               className="absolute twinkle"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
+                left: `${star.x}%`,
+                top: `${star.y}%`,
+                animationDelay: `${star.d}s`,
               }}
             >
-              <Star
-                className="text-secondary/30"
-                size={Math.random() * 16 + 8}
-              />
+              <Star className="text-secondary/30" size={star.s} />
             </div>
           ))}
         </div>
@@ -122,14 +130,14 @@ export default function LandingPage() {
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               </Link>
-              <a href="#demo">
+              <a href="#how-it-works">
                 <Button
                   variant="outline"
                   size="lg"
                   className="w-full sm:w-auto"
                 >
                   <BookOpen className="w-5 h-5" />
-                  See Demo Story
+                  How It Works
                 </Button>
               </a>
             </motion.div>
@@ -514,6 +522,7 @@ export default function LandingPage() {
             </span>
           </div>
           <div className="flex items-center gap-6 text-sm text-text-muted">
+            <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <span>No ads. No data sold. COPPA compliant.</span>
           </div>
           <div className="text-sm text-text-muted">

@@ -15,6 +15,13 @@ import {
 } from "lucide-react"
 import { THEMES } from "@/lib/types"
 
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
+}
+
 export default function DashboardPage() {
   const profiles = useAppStore((s) => s.profiles)
   const activeProfile = useAppStore((s) => s.getActiveProfile())
@@ -57,8 +64,8 @@ export default function DashboardPage() {
       <div>
         <h1 className="font-heading text-3xl font-bold text-text">
           {activeProfile
-            ? `Good evening! Ready for ${activeProfile.name}'s story?`
-            : "Good evening!"}
+            ? `${getGreeting()}! Ready for ${activeProfile.name}'s story?`
+            : `${getGreeting()}!`}
         </h1>
         <p className="text-text-muted mt-1">
           {new Date().toLocaleDateString("en-US", {

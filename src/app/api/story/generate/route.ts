@@ -51,6 +51,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Sanitize customPrompt - cap length and strip control characters
+    const sanitizedPrompt = customPrompt
+      ? String(customPrompt).slice(0, 500).replace(/[\x00-\x1f]/g, "")
+      : undefined
+
+    // Cap chapter count
+    const safeChapterCount = Math.min(Math.max(Number(chapterCount) || 4, 1), 6)
+
+    // Validate drawing size (max ~5MB base64)
+    if (drawingBase64 && drawingBase64.length > 7_000_000) {
+      return NextResponse.json(
+        { error: "Drawing file is too large. Max 5MB." },
+        { status: 400 }
+      )
+    }
+
     // Generate story text
     let story
     if (drawingBase64) {
@@ -65,9 +81,9 @@ export async function POST(request: NextRequest) {
         childName,
         childAge,
         theme: theme || "adventure",
-        customPrompt,
+        customPrompt: sanitizedPrompt,
         companion,
-        chapterCount,
+        chapterCount: safeChapterCount,
       })
     }
 

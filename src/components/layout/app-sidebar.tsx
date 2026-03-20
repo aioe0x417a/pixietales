@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Sparkles,
-  BookOpen,
   PlusCircle,
   Library,
   Users,

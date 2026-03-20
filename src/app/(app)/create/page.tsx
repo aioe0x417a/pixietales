@@ -45,6 +45,7 @@ function CreateStoryPage() {
   const [drawingMode, setDrawingMode] = useState(false)
   const [drawingBase64, setDrawingBase64] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   if (!activeProfile) {
     return (
@@ -90,9 +91,11 @@ function CreateStoryPage() {
     setIsGenerating(true)
 
     try {
+      abortControllerRef.current = new AbortController()
       const response = await fetch("/api/story/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           childName: activeProfile.name,
           childAge: activeProfile.age,
@@ -123,8 +126,12 @@ function CreateStoryPage() {
       toast.success("Story created!")
       router.push(`/story/${storyId}`)
     } catch (error) {
-      console.error("Generation error:", error)
-      toast.error("Failed to generate story. Please try again.")
+      if ((error as Error).name === "AbortError") {
+        toast.info("Story generation cancelled")
+      } else {
+        console.error("Generation error:", error)
+        toast.error("Failed to generate story. Please try again.")
+      }
       setStep("customize")
       setIsGenerating(false)
     }
@@ -356,6 +363,16 @@ function CreateStoryPage() {
               <Loader2 className="w-4 h-4 animate-spin" />
               Generating chapters and illustrations...
             </div>
+            <button
+              onClick={() => {
+                abortControllerRef.current?.abort()
+                setStep("customize")
+                setIsGenerating(false)
+              }}
+              className="mt-4 text-sm text-text-muted hover:text-error transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

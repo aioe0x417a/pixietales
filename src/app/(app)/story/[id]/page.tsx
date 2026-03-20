@@ -10,7 +10,6 @@ import {
   Volume2,
   VolumeX,
   Moon,
-  Share2,
   Trash2,
   Home,
 } from "lucide-react"
@@ -30,7 +29,6 @@ export default function StoryReaderPage({
   const removeStory = useAppStore((s) => s.removeStory)
 
   const [currentChapter, setCurrentChapter] = useState(0)
-  const [isReading, setIsReading] = useState(false)
   const [readAloud, setReadAloud] = useState(false)
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null)
 
@@ -132,7 +130,7 @@ export default function StoryReaderPage({
             variant="ghost"
             size="sm"
             onClick={toggleReadAloud}
-            title={readAloud ? "Stop reading" : "Read aloud"}
+            aria-label={readAloud ? "Stop reading aloud" : "Read story aloud"}
           >
             {readAloud ? (
               <VolumeX className="w-5 h-5" />
@@ -144,7 +142,7 @@ export default function StoryReaderPage({
             variant="ghost"
             size="sm"
             onClick={handleDelete}
-            title="Delete story"
+            aria-label="Delete this story"
           >
             <Trash2 className="w-5 h-5 text-error" />
           </Button>
@@ -227,6 +225,8 @@ export default function StoryReaderPage({
             <button
               key={i}
               onClick={() => setCurrentChapter(i)}
+              aria-label={`Go to chapter ${i + 1}`}
+              aria-current={i === currentChapter ? "true" : undefined}
               className={cn(
                 "w-3 h-3 rounded-full transition-all cursor-pointer",
                 i === currentChapter

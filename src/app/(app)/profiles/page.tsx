@@ -146,6 +146,8 @@ export default function ProfilesPage() {
                     <button
                       key={age}
                       onClick={() => setFormData((p) => ({ ...p, age }))}
+                      aria-label={`Age ${age}`}
+                      aria-pressed={formData.age === age}
                       className={`w-12 h-12 rounded-xl font-heading font-bold text-lg transition-all cursor-pointer ${
                         formData.age === age
                           ? "bg-primary text-white shadow-md"

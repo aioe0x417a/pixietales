@@ -146,8 +146,8 @@ export default function LibraryPage() {
                     </div>
                     <button
                       onClick={() => handleDelete(story.id, story.title)}
-                      className="text-text-muted/40 hover:text-error transition-colors cursor-pointer p-1"
-                      title="Delete story"
+                      className="text-text-muted/40 hover:text-error transition-colors cursor-pointer p-2"
+                      aria-label={`Delete ${story.title}`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

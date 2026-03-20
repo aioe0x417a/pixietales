@@ -239,6 +239,8 @@ export default function BedtimePage() {
                 <button
                   key={sound.id}
                   onClick={() => toggleSound(sound.id)}
+                  aria-pressed={isActive}
+                  aria-label={`${sound.name} sound${isActive ? " (playing)" : ""}`}
                   className={cn(
                     "flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all cursor-pointer",
                     isActive
