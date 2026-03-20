@@ -1,26 +1,157 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* PixieTales Design System
+   Fonts: Fredoka (headings) + Nunito (body)
+   Theme: Magical bedtime storybook - purples, ambers, soft pinks
+*/
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: #7C3AED;
+  --color-primary-light: #A78BFA;
+  --color-primary-dark: #5B21B6;
+  --color-secondary: #F59E0B;
+  --color-secondary-light: #FCD34D;
+  --color-accent: #EC4899;
+  --color-accent-light: #F9A8D4;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F5F3FF;
+  --color-background: #FAF5FF;
+  --color-text: #1E1B4B;
+  --color-text-muted: #6B7280;
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-night-bg: #0F0A1A;
+  --color-night-surface: #1A1333;
+  --color-night-text: #E8E0F0;
+  --color-night-muted: #9CA3AF;
+
+  --font-heading: "Fredoka", sans-serif;
+  --font-body: "Nunito", sans-serif;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #FAF5FF;
+  --foreground: #1E1B4B;
+}
+
+.bedtime-mode {
+  --background: #0F0A1A;
+  --foreground: #E8E0F0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Magical shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 58, 237, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* Floating stars animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Twinkle animation */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Pulse glow */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.4); }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Page turn animation */
+@keyframes pageTurn {
+  0% { transform: perspective(1200px) rotateY(0); }
+  100% { transform: perspective(1200px) rotateY(-15deg); }
+}
+
+/* Bedtime mode warm overlay */
+.bedtime-mode * {
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-alt);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer, .float, .twinkle, .pulse-glow {
+    animation: none;
+  }
+
+  .fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
