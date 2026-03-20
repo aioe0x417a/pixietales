@@ -2,19 +2,30 @@ import OpenAI from "openai"
 import type { StoryGenerationRequest, StoryGenerationResponse, StoryChapter } from "./types"
 import { getWordCount } from "./utils"
 
-// Server-side only - never import on client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Lazy-initialized clients (server-side only)
+let _openai: OpenAI | null = null
+let _openrouter: OpenAI | null = null
 
-const openrouter = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-})
+function getOpenAI() {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" })
+  }
+  return _openai
+}
+
+function getOpenRouter() {
+  if (!_openrouter) {
+    _openrouter = new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY || "",
+      baseURL: "https://openrouter.ai/api/v1",
+    })
+  }
+  return _openrouter
+}
 
 function getClient() {
-  if (process.env.STORY_MODEL_PROVIDER === "openrouter") return openrouter
-  return openai
+  if (process.env.STORY_MODEL_PROVIDER === "openrouter") return getOpenRouter()
+  return getOpenAI()
 }
 
 function getModelId() {
@@ -106,7 +117,7 @@ export async function generateStoryFromDrawing(
 ): Promise<StoryGenerationResponse> {
   const wordRange = getWordCount(childAge)
 
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o",
     messages: [
       {
@@ -144,7 +155,7 @@ export async function generateImage(prompt: string): Promise<string> {
   const provider = process.env.IMAGE_MODEL_PROVIDER || "openai"
 
   if (provider === "openai") {
-    const response = await openai.images.generate({
+    const response = await getOpenAI().images.generate({
       model: process.env.IMAGE_MODEL_ID || "dall-e-3",
       prompt: `${prompt}. Style: soft watercolor children's book illustration, warm gentle colors, dreamy magical atmosphere, no text, safe for children.`,
       n: 1,
