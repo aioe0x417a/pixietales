@@ -446,10 +446,14 @@ export default function StoryReaderPage({
                 )}
                 title={ambient.isPlaying
                   ? `${AMBIENT_SOUNDS.find((s) => s.id === ambient.currentSoundId)?.name || "Ambient"} playing`
-                  : "Ambient sound"
+                  : "Ambient sound off"
                 }
               >
-                <Music2 className="w-4 h-4" />
+                {ambient.isPlaying ? (
+                  <Music2 className="w-4 h-4" />
+                ) : (
+                  <VolumeX className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
