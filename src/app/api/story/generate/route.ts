@@ -4,6 +4,9 @@ import { generateStory, generateStoryFromDrawing, generateImage } from "@/lib/ai
 import { rateLimit } from "@/lib/rate-limit"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
+const VALID_COMPANIONS = ["bunny", "dragon", "bear", "cat", "unicorn"]
+const VALID_THEMES = ["adventure", "animals", "space", "ocean", "friendship", "magic", "dinosaurs", "princesses", "superheroes", "nature", "custom"]
+
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
@@ -59,9 +62,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!companion) {
+    if (!companion || !VALID_COMPANIONS.includes(companion)) {
       return NextResponse.json(
-        { error: "Missing required fields: companion" },
+        { error: "Invalid companion" },
+        { status: 400 }
+      )
+    }
+
+    if (theme && !VALID_THEMES.includes(theme)) {
+      return NextResponse.json(
+        { error: "Invalid theme" },
         { status: 400 }
       )
     }
@@ -129,8 +139,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(story)
   } catch (error) {
     console.error("Story generation error:", error)
+    const message = error instanceof Error ? error.message : "Failed to generate story. Please try again."
     return NextResponse.json(
-      { error: "Failed to generate story. Please try again." },
+      { error: message },
       { status: 500 }
     )
   }

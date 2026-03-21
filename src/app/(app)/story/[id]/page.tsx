@@ -64,6 +64,20 @@ export default function StoryReaderPage({
   const isFirst = currentChapter === 0
   const isLast = currentChapter === story.chapters.length - 1
 
+  if (!chapter) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <BookOpen className="w-16 h-16 text-primary/30 mb-6" />
+        <h1 className="font-heading text-2xl font-bold text-text mb-4">
+          Chapter Not Found
+        </h1>
+        <Button onClick={() => router.push("/library")}>
+          Go to Library
+        </Button>
+      </div>
+    )
+  }
+
   function speakChapter(index: number) {
     window.speechSynthesis?.cancel()
     const chap = story!.chapters[index]
@@ -175,7 +189,7 @@ export default function StoryReaderPage({
           className="space-y-6"
         >
           {/* Chapter Image */}
-          {chapter.imageUrl ? (
+          {chapter.imageUrl && (chapter.imageUrl.startsWith("data:image/") || chapter.imageUrl.startsWith("https://")) ? (
             <div className="rounded-2xl overflow-hidden shadow-lg border border-primary/10">
               <img
                 src={chapter.imageUrl}

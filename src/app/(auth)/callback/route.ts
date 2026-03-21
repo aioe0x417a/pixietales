@@ -6,7 +6,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code")
   let redirect = searchParams.get("redirect") || "/dashboard"
 
-  // Prevent open redirect -- only allow relative paths
+  // Prevent open redirect -- only use the pathname
+  try {
+    const parsed = new URL(redirect, request.url)
+    redirect = parsed.pathname + parsed.search
+  } catch {
+    redirect = "/dashboard"
+  }
   if (!redirect.startsWith("/") || redirect.startsWith("//")) {
     redirect = "/dashboard"
   }

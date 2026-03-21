@@ -108,8 +108,12 @@ Return ONLY valid JSON in this exact format:
   const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content]
   const jsonStr = (jsonMatch[1] || content).trim()
 
-  const parsed = JSON.parse(jsonStr) as StoryGenerationResponse
-  return parsed
+  try {
+    const parsed = JSON.parse(jsonStr) as StoryGenerationResponse
+    return parsed
+  } catch {
+    throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
+  }
 }
 
 export async function generateStoryFromDrawing(
@@ -156,7 +160,11 @@ Return ONLY valid JSON: { "title": "...", "chapters": [{ "title": "...", "conten
   const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content]
   const jsonStr = (jsonMatch[1] || content).trim()
 
-  return JSON.parse(jsonStr) as StoryGenerationResponse
+  try {
+    return JSON.parse(jsonStr) as StoryGenerationResponse
+  } catch {
+    throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
+  }
 }
 
 export async function generateImage(prompt: string): Promise<string> {
