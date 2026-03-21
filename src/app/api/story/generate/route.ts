@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!childAge || typeof childAge !== "number" || childAge < 1 || childAge > 6) {
+    if (!childAge || typeof childAge !== "number" || childAge < 1 || childAge > 8) {
       return NextResponse.json(
-        { error: "Age must be between 1 and 6" },
+        { error: "Age must be between 1 and 8" },
         { status: 400 }
       )
     }

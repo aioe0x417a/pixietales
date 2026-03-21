@@ -17,14 +17,17 @@ export function formatDate(date: Date | string) {
   })
 }
 
-export function getAgeGroup(age: number): "toddler" | "preschool" | "kindergarten" {
+export function getAgeGroup(age: number): "baby" | "toddler" | "preschool" | "kindergarten" | "early-reader" {
+  if (age <= 1) return "baby"
   if (age <= 2) return "toddler"
   if (age <= 4) return "preschool"
-  return "kindergarten"
+  if (age <= 6) return "kindergarten"
+  return "early-reader"
 }
 
 export function getWordCount(age: number): { min: number; max: number } {
-  if (age <= 2) return { min: 100, max: 150 }
-  if (age <= 4) return { min: 200, max: 300 }
-  return { min: 350, max: 500 }
+  if (age <= 2) return { min: 50, max: 100 }
+  if (age <= 4) return { min: 150, max: 250 }
+  if (age <= 6) return { min: 250, max: 400 }
+  return { min: 400, max: 600 }
 }

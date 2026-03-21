@@ -162,7 +162,7 @@ export default function LandingPage() {
               </span>
               <span className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
-                Made for Ages 1-6
+                Made for Ages 1-8
               </span>
             </motion.div>
           </motion.div>

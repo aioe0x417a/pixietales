@@ -142,13 +142,13 @@ export default function ProfilesPage() {
                   Age
                 </label>
                 <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5, 6].map((age) => (
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((age) => (
                     <button
                       key={age}
                       onClick={() => setFormData((p) => ({ ...p, age }))}
                       aria-label={`Age ${age}`}
                       aria-pressed={formData.age === age}
-                      className={`w-12 h-12 rounded-xl font-heading font-bold text-lg transition-all cursor-pointer ${
+                      className={`w-10 h-10 rounded-xl font-heading font-bold text-base transition-all cursor-pointer ${
                         formData.age === age
                           ? "bg-primary text-white shadow-md"
                           : "bg-primary/5 text-text hover:bg-primary/10"
