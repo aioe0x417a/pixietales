@@ -13,11 +13,14 @@ import {
   Trash2,
   Home,
   Loader2,
+  Music2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
 import { getSupabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
+import { useAmbientAudio } from "@/components/audio/ambient-audio-provider"
+import { getSoundForTheme, AMBIENT_SOUNDS } from "@/lib/ambient-sounds"
 import { toast } from "sonner"
 
 export default function StoryReaderPage({
@@ -32,6 +35,8 @@ export default function StoryReaderPage({
   const updateChapterAudioUrl = useAppStore((s) => s.updateChapterAudioUrl)
 
   const narrationVoice = story?.narrationVoice || "en-US-JennyNeural"
+  const bedtimeMode = useAppStore((s) => s.bedtimeMode)
+  const ambient = useAmbientAudio()
 
   const [currentChapter, setCurrentChapter] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -124,6 +129,14 @@ export default function StoryReaderPage({
       generateAudio(currentChapter).catch(() => {})
     }
   }, [currentChapter, story?.narrationEnabled])
+
+  // Auto-start ambient sound if arriving from bedtime mode
+  useEffect(() => {
+    if (bedtimeMode && story?.theme && !ambient.isPlaying) {
+      const soundId = getSoundForTheme(story.theme)
+      ambient.fadeIn(soundId, 0.25, 2000)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
 
   async function playChapter(chapterIdx: number) {
     setIsLoading(true)
@@ -409,6 +422,35 @@ export default function StoryReaderPage({
                   <VolumeX className="w-4 h-4" />
                 </button>
               )}
+
+              {/* Ambient Sound Toggle */}
+              <button
+                onClick={() => {
+                  if (ambient.isPlaying) {
+                    ambient.fadeOut(800)
+                  } else {
+                    const soundId = getSoundForTheme(story.theme)
+                    ambient.fadeIn(soundId, 0.25, 800)
+                  }
+                }}
+                aria-label={ambient.isPlaying
+                  ? `Stop ambient sound (${AMBIENT_SOUNDS.find((s) => s.id === ambient.currentSoundId)?.name || ""})`
+                  : "Play ambient sound"
+                }
+                aria-pressed={ambient.isPlaying}
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer",
+                  ambient.isPlaying
+                    ? "bg-accent/20 text-accent"
+                    : "bg-surface-alt text-text-muted hover:text-accent"
+                )}
+                title={ambient.isPlaying
+                  ? `${AMBIENT_SOUNDS.find((s) => s.id === ambient.currentSoundId)?.name || "Ambient"} playing`
+                  : "Ambient sound"
+                }
+              >
+                <Music2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>

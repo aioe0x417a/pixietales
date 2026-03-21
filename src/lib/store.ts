@@ -3,6 +3,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { ChildProfile, Story, StoryChapter, NarrationVoice, StoryLanguage } from "./types"
+import type { AmbientSoundId } from "./ambient-sounds"
 import { generateId } from "./utils"
 import { getSupabase } from "./supabase"
 
@@ -26,6 +27,14 @@ export interface AppStore {
   // UI State
   bedtimeMode: boolean
   setBedtimeMode: (on: boolean) => void
+
+  // Ambient Sound (persisted preferences -- actual audio lives in AmbientAudioProvider)
+  ambientSoundId: AmbientSoundId | null
+  ambientVolume: number
+  ambientEnabled: boolean
+  setAmbientSound: (id: AmbientSoundId | null) => void
+  setAmbientVolume: (vol: number) => void
+  setAmbientEnabled: (on: boolean) => void
 
   // Narration
   narrationVoice: NarrationVoice
@@ -191,6 +200,14 @@ export const useAppStore = create<AppStore>()(
       bedtimeMode: false,
       setBedtimeMode: (on) => set({ bedtimeMode: on }),
 
+      // Ambient Sound
+      ambientSoundId: null,
+      ambientVolume: 0.4,
+      ambientEnabled: false,
+      setAmbientSound: (id) => set({ ambientSoundId: id }),
+      setAmbientVolume: (vol) => set({ ambientVolume: vol }),
+      setAmbientEnabled: (on) => set({ ambientEnabled: on }),
+
       // Narration
       narrationVoice: "en-US-JennyNeural" as NarrationVoice,
       setNarrationVoice: (voice) => set({ narrationVoice: voice }),
@@ -216,6 +233,9 @@ export const useAppStore = create<AppStore>()(
         stories: [],
         bedtimeMode: false,
         narrationVoice: "en-US-JennyNeural" as NarrationVoice,
+        ambientSoundId: null,
+        ambientVolume: 0.4,
+        ambientEnabled: false,
       }),
 
       // Supabase sync: load all data for the logged-in user

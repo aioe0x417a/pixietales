@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import {
   Moon,
   CloudMoon,
+  CloudRain,
   Wind,
   Waves,
   TreePine,
@@ -15,30 +16,23 @@ import {
   VolumeX,
   Timer,
   BookOpen,
-  Sparkles,
   Sun,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
+import { useAmbientAudio } from "@/components/audio/ambient-audio-provider"
+import { AMBIENT_SOUNDS, type AmbientSoundId } from "@/lib/ambient-sounds"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
-interface SleepSound {
-  id: string
-  name: string
-  icon: React.ElementType
-  color: string
-  frequency?: number
+const ICON_MAP: Record<string, React.ElementType> = {
+  CloudRain,
+  Waves,
+  TreePine,
+  Wind,
+  Music,
+  CloudMoon,
 }
-
-const SLEEP_SOUNDS: SleepSound[] = [
-  { id: "rain", name: "Rain", icon: Waves, color: "#0EA5E9" },
-  { id: "ocean", name: "Ocean", icon: Waves, color: "#06B6D4" },
-  { id: "forest", name: "Forest Night", icon: TreePine, color: "#22C55E" },
-  { id: "wind", name: "Gentle Wind", icon: Wind, color: "#A78BFA" },
-  { id: "lullaby", name: "Lullaby", icon: Music, color: "#EC4899" },
-  { id: "white", name: "White Noise", icon: CloudMoon, color: "#6B7280" },
-]
 
 const BREATHING_STEPS = [
   { label: "Breathe In", duration: 4 },
@@ -51,18 +45,13 @@ export default function BedtimePage() {
   const setBedtimeMode = useAppStore((s) => s.setBedtimeMode)
   const activeProfile = useAppStore((s) => s.getActiveProfile())
 
-  const [activeSounds, setActiveSounds] = useState<Set<string>>(new Set())
-  const [volume, setVolume] = useState(0.5)
+  const { isPlaying, currentSoundId, volume, toggle, stop, setVolume } = useAmbientAudio()
+
   const [showBreathing, setShowBreathing] = useState(false)
   const [breathingStep, setBreathingStep] = useState(0)
   const [breathingProgress, setBreathingProgress] = useState(0)
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null)
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null)
-
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const oscillatorsRef = useRef<Map<string, OscillatorNode>>(new Map())
-  const gainRef = useRef<GainNode | null>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Breathing exercise timer
   useEffect(() => {
@@ -90,8 +79,7 @@ export default function BedtimePage() {
     const interval = setInterval(() => {
       setTimerRemaining((prev) => {
         if (prev === null || prev <= 0) {
-          // Time's up - stop everything
-          stopAllSounds()
+          stop()
           setTimerMinutes(null)
           setBedtimeMode(false)
           return null
@@ -100,85 +88,22 @@ export default function BedtimePage() {
       })
     }, 1000)
 
-    timerRef.current = interval
     return () => clearInterval(interval)
-  }, [timerMinutes])
+  }, [timerMinutes, stop, setBedtimeMode])
 
-  function toggleSound(soundId: string) {
-    const newSounds = new Set(activeSounds)
-    if (newSounds.has(soundId)) {
-      newSounds.delete(soundId)
-      stopSound(soundId)
-    } else {
-      newSounds.add(soundId)
-      playSound(soundId)
-    }
-    setActiveSounds(newSounds)
-  }
-
-  function playSound(soundId: string) {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext()
-      gainRef.current = audioCtxRef.current.createGain()
-      gainRef.current.gain.value = volume
-      gainRef.current.connect(audioCtxRef.current.destination)
-    }
-
-    const ctx = audioCtxRef.current
-    const gain = gainRef.current!
-
-    // Create ambient noise using oscillators (simplified version)
-    const osc = ctx.createOscillator()
-    const oscGain = ctx.createGain()
-    oscGain.gain.value = 0.1
-
-    const frequencies: Record<string, number> = {
-      rain: 200,
-      ocean: 150,
-      forest: 300,
-      wind: 100,
-      lullaby: 440,
-      white: 500,
-    }
-
-    osc.frequency.value = frequencies[soundId] || 200
-    osc.type = soundId === "white" ? "sawtooth" : "sine"
-
-    // Add slight modulation for more natural sound
-    const lfo = ctx.createOscillator()
-    const lfoGain = ctx.createGain()
-    lfo.frequency.value = 0.2
-    lfoGain.gain.value = 20
-    lfo.connect(lfoGain)
-    lfoGain.connect(osc.frequency)
-    lfo.start()
-
-    osc.connect(oscGain)
-    oscGain.connect(gain)
-    osc.start()
-
-    oscillatorsRef.current.set(soundId, osc)
-  }
-
-  function stopSound(soundId: string) {
-    const osc = oscillatorsRef.current.get(soundId)
-    if (osc) {
-      osc.stop()
-      oscillatorsRef.current.delete(soundId)
-    }
-  }
-
-  function stopAllSounds() {
-    oscillatorsRef.current.forEach((osc) => osc.stop())
-    oscillatorsRef.current.clear()
-    setActiveSounds(new Set())
+  function handleToggleSound(soundId: AmbientSoundId) {
+    toggle(soundId)
   }
 
   function handleVolumeChange(newVol: number) {
     setVolume(newVol)
-    if (gainRef.current) {
-      gainRef.current.gain.value = newVol
-    }
+  }
+
+  function handleExitBedtime() {
+    stop()
+    setBedtimeMode(false)
+    setTimerMinutes(null)
+    setTimerRemaining(null)
   }
 
   function formatTime(seconds: number) {
@@ -207,8 +132,11 @@ export default function BedtimePage() {
         <Button
           variant={bedtimeMode ? "secondary" : "primary"}
           onClick={() => {
-            setBedtimeMode(!bedtimeMode)
-            if (bedtimeMode) stopAllSounds()
+            if (bedtimeMode) {
+              handleExitBedtime()
+            } else {
+              setBedtimeMode(true)
+            }
           }}
         >
           {bedtimeMode ? (
@@ -233,12 +161,13 @@ export default function BedtimePage() {
             Sleep Sounds
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {SLEEP_SOUNDS.map((sound) => {
-              const isActive = activeSounds.has(sound.id)
+            {AMBIENT_SOUNDS.map((sound) => {
+              const isActive = currentSoundId === sound.id
+              const Icon = ICON_MAP[sound.icon] || CloudMoon
               return (
                 <button
                   key={sound.id}
-                  onClick={() => toggleSound(sound.id)}
+                  onClick={() => handleToggleSound(sound.id)}
                   aria-pressed={isActive}
                   aria-label={`${sound.name} sound${isActive ? " (playing)" : ""}`}
                   className={cn(
@@ -256,7 +185,7 @@ export default function BedtimePage() {
                       : {}
                   }
                 >
-                  <sound.icon
+                  <Icon
                     className={cn(
                       "w-8 h-8 transition-all",
                       isActive && "animate-pulse"
@@ -278,7 +207,7 @@ export default function BedtimePage() {
           </div>
 
           {/* Volume */}
-          {activeSounds.size > 0 && (
+          {isPlaying && (
             <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-surface-alt">
               <VolumeX className="w-4 h-4 text-text-muted" />
               <input
@@ -289,6 +218,7 @@ export default function BedtimePage() {
                 value={volume}
                 onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                 className="flex-1 accent-primary"
+                aria-label="Volume"
               />
               <Volume2 className="w-4 h-4 text-text-muted" />
             </div>
