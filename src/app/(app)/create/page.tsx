@@ -170,7 +170,8 @@ function CreateStoryPage() {
 
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}))
-        throw new Error(errBody.error || `Failed to generate story (${response.status})`)
+        const debugInfo = errBody._debug ? ` [${errBody._debug.name}: ${errBody._debug.stack || ""}]` : ""
+        throw new Error((errBody.error || `Failed to generate story (${response.status})`) + debugInfo)
       }
 
       const story = await response.json()
