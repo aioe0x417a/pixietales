@@ -6,6 +6,7 @@ import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
 const VALID_COMPANIONS = ["bunny", "dragon", "bear", "cat", "unicorn"]
 const VALID_THEMES = ["adventure", "animals", "space", "ocean", "friendship", "magic", "dinosaurs", "princesses", "superheroes", "nature", "custom"]
+const VALID_LANGUAGES = ["en", "ms", "zh", "ta", "th"]
 
 export const maxDuration = 60
 
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       drawingBase64,
       chapterCount = 4,
       generateImages = true,
+      language = "en",
     } = body as StoryGenerationRequest & { generateImages?: boolean }
 
     // Input validation
@@ -76,6 +78,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (language && !VALID_LANGUAGES.includes(language)) {
+      return NextResponse.json(
+        { error: "Invalid language" },
+        { status: 400 }
+      )
+    }
+
     // Sanitize customPrompt - cap length and strip control characters
     const sanitizedPrompt = customPrompt
       ? String(customPrompt).slice(0, 500).replace(/[\x00-\x1f]/g, "")
@@ -99,7 +108,8 @@ export async function POST(request: NextRequest) {
         drawingBase64,
         childName,
         childAge,
-        companion
+        companion,
+        language
       )
     } else {
       story = await generateStory({
@@ -109,6 +119,7 @@ export async function POST(request: NextRequest) {
         customPrompt: sanitizedPrompt,
         companion,
         chapterCount: safeChapterCount,
+        language,
       })
     }
 

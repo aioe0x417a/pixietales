@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/input"
 import { useAppStore } from "@/lib/store"
 import { getSupabase } from "@/lib/supabase"
-import { THEMES, COMPANIONS, type Theme, type Companion } from "@/lib/types"
+import { THEMES, COMPANIONS, STORY_LANGUAGES, type Theme, type Companion, type StoryLanguage } from "@/lib/types"
 import { toast } from "sonner"
 
 type Step = "theme" | "customize" | "generating"
@@ -43,6 +43,7 @@ function CreateStoryPage() {
   )
   const [customPrompt, setCustomPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<StoryLanguage>("en")
   const [drawingMode, setDrawingMode] = useState(false)
   const [drawingBase64, setDrawingBase64] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -110,6 +111,7 @@ function CreateStoryPage() {
           drawingBase64: drawingBase64 || undefined,
           chapterCount: 4,
           generateImages: true,
+          language: selectedLanguage,
         }),
       })
 
@@ -127,6 +129,7 @@ function CreateStoryPage() {
         childProfileId: activeProfile.id,
         childName: activeProfile.name,
         prompt: customPrompt || undefined,
+        language: selectedLanguage,
       })
 
       toast.success("Story created!")
@@ -260,6 +263,31 @@ function CreateStoryPage() {
                 </p>
               </div>
 
+              {/* Language selector */}
+              <div>
+                <label className="block text-sm font-semibold text-text mb-2">
+                  Story Language
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {STORY_LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.value}
+                      onClick={() => setSelectedLanguage(lang.value)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer text-center ${
+                        selectedLanguage === lang.value
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-primary/10 hover:border-primary/30"
+                      }`}
+                    >
+                      <span className="text-sm font-semibold text-text">{lang.nativeLabel}</span>
+                      {lang.value !== "en" && (
+                        <span className="text-[10px] text-text-muted">{lang.label}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Drawing preview */}
               {drawingBase64 && (
                 <div className="rounded-xl overflow-hidden border border-primary/10">
@@ -312,6 +340,12 @@ function CreateStoryPage() {
                   <div>
                     <span className="text-text-muted">Chapters:</span>{" "}
                     <span className="font-semibold">4</span>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Language:</span>{" "}
+                    <span className="font-semibold">
+                      {STORY_LANGUAGES.find((l) => l.value === selectedLanguage)?.label || "English"}
+                    </span>
                   </div>
                 </div>
               </div>

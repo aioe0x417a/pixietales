@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { EdgeTTS } from "@andresaya/edge-tts"
 import { rateLimit } from "@/lib/rate-limit"
+import { NARRATION_VOICES, type VoiceCategory } from "@/lib/types"
 
-const VALID_VOICES = [
-  "en-US-JennyNeural",
-  "en-US-AnaNeural",
-  "en-US-AriaNeural",
-  "en-US-GuyNeural",
-  "en-US-MichelleNeural",
-]
+const VALID_VOICES = NARRATION_VOICES.map((v) => v.value)
+
+// Prosody settings per voice category for expressive narration
+const CATEGORY_PROSODY: Record<VoiceCategory, { rate: string; pitch: string; volume: string }> = {
+  storyteller: { rate: "-15%", pitch: "-3Hz", volume: "+0%" },   // Slow, calm, soothing
+  child: { rate: "+0%", pitch: "+3Hz", volume: "+5%" },          // Bright, energetic
+  character: { rate: "-5%", pitch: "+0Hz", volume: "+0%" },      // Natural, expressive
+}
 
 // Force Node.js runtime (edge-tts uses WebSocket which needs Node)
 export const runtime = "nodejs"
@@ -89,13 +91,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ audioUrl: existing.signedUrl })
     }
 
+    // Determine prosody from voice category
+    const voiceInfo = NARRATION_VOICES.find((v) => v.value === voice)
+    const prosody = CATEGORY_PROSODY[voiceInfo?.category || "storyteller"]
+
     // Generate TTS audio
     const tts = new EdgeTTS()
-    await tts.synthesize(text, voice, {
-      rate: "-10%",
-      pitch: "-5Hz",
-      volume: "+0%",
-    })
+    await tts.synthesize(text, voice, prosody)
 
     const audioBuffer = tts.toBuffer()
 

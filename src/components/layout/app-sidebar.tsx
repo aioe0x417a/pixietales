@@ -10,7 +10,6 @@ import {
   Moon,
   Mic,
   GraduationCap,
-  Globe,
   LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -28,7 +27,6 @@ const navItems = [
 const comingSoonItems = [
   { label: "Voice Recording", icon: Mic },
   { label: "Word Learning", icon: GraduationCap },
-  { label: "Languages", icon: Globe },
 ]
 
 export function AppSidebar() {

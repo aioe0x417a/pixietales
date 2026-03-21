@@ -28,7 +28,7 @@ PixieTales helps parents tell magical bedtime stories to their kids. The parent 
 | Database | Supabase (Postgres + Auth + Storage + Realtime) |
 | AI -- Story Text | OpenRouter (Claude 3 Haiku) |
 | AI -- Illustrations | Gemini 3.1 Flash Image (`gemini-3.1-flash-image-preview` aka "Nano Banana 2") + gpt-image-1 as alternative |
-| AI -- Narration | ElevenLabs TTS (primary), OpenAI TTS (budget fallback) |
+| AI -- Narration | Edge TTS (free, 25 voices, 5 languages), Google Cloud TTS (premium tier, future) |
 | Payments | Stripe (subscriptions) |
 | Deployment | Vercel (web), Expo EAS (mobile) |
 | DNS/CDN | Cloudflare |
@@ -346,6 +346,8 @@ From QA code review (2026-03-21). Lower priority items to address in future spri
 | 5 | Minor | Auth | `require-auth.tsx` returns `null` during loading (blank flash) | Replace with loading spinner for better UX. |
 | 6 | Minor | Auth | `supabase.ts` singleton has no server-import guard | Add `"use client"` directive or runtime check. `supabase-admin.ts` already has `"server-only"`. |
 | 7 | Minor | Security | No explicit CSRF/Origin check on API routes | Mitigated by Bearer token auth. Add Origin header check for defense-in-depth. |
+| 8 | Enhancement | TTS | Full SSML support for expressive narration | `@andresaya/edge-tts` escapes XML input. Build custom WebSocket wrapper to send raw SSML for `<break>`, `<emphasis>`, `mstts:express-as` (style/role). Enables whispering, cheerful, sad styles + grandparent role simulation. |
+| 9 | Enhancement | TTS | Google Cloud TTS as premium voice tier | Add `en-US-Studio-O`, `en-GB-Studio-B` etc. behind paywall. Neural2 tier has 1M chars/month free. Requires GCP service account + billing. |
 
 ---
 

@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
-import { NARRATION_VOICES, type NarrationVoice } from "@/lib/types"
+import { NARRATION_VOICES, getVoicesForLanguage, getDefaultVoice, type NarrationVoiceOption, type StoryLanguage } from "@/lib/types"
 import { getSupabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -79,6 +79,15 @@ export default function StoryReaderPage({
     setAudioProgress(0)
     setAudioDuration(0)
   }, [currentChapter])
+
+  // Auto-select default voice for the story's language
+  useEffect(() => {
+    const storyLang = story?.language || "en"
+    const currentVoice = NARRATION_VOICES.find(v => v.value === narrationVoice)
+    if (!currentVoice || currentVoice.language !== storyLang) {
+      setNarrationVoice(getDefaultVoice(storyLang as StoryLanguage))
+    }
+  }, [story?.language])
 
   const getCacheKey = useCallback(
     (chapterIdx: number) => `${id}-${chapterIdx}-${narrationVoice}`,
@@ -221,7 +230,7 @@ export default function StoryReaderPage({
     }
   }
 
-  function handleVoiceChange(voice: NarrationVoice) {
+  function handleVoiceChange(voice: string) {
     setNarrationVoice(voice)
     setShowVoiceMenu(false)
     // Stop current playback since voice changed
@@ -260,7 +269,20 @@ export default function StoryReaderPage({
   const chapter = story.chapters[currentChapter]
   const isFirst = currentChapter === 0
   const isLast = currentChapter === story.chapters.length - 1
-  const selectedVoice = NARRATION_VOICES.find((v) => v.value === narrationVoice)
+  const storyLang = (story.language || "en") as StoryLanguage
+  const availableVoices = getVoicesForLanguage(storyLang)
+  const selectedVoice = availableVoices.find((v) => v.value === narrationVoice)
+
+  const categoryLabels: Record<string, string> = {
+    storyteller: "Storyteller",
+    child: "Child",
+    character: "Character",
+  }
+  const groupedVoices = availableVoices.reduce<Record<string, NarrationVoiceOption[]>>((acc, v) => {
+    if (!acc[v.category]) acc[v.category] = []
+    acc[v.category].push(v)
+    return acc
+  }, {})
 
   if (!chapter) {
     return (
@@ -319,25 +341,37 @@ export default function StoryReaderPage({
                     <p className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
                       Narration Voice
                     </p>
-                    {NARRATION_VOICES.map((voice) => (
-                      <button
-                        key={voice.value}
-                        onClick={() => handleVoiceChange(voice.value)}
-                        className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
-                          narrationVoice === voice.value
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-primary/5 text-text"
-                        )}
-                      >
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold">{voice.label}</p>
-                          <p className="text-xs text-text-muted">{voice.description}</p>
-                        </div>
-                        {narrationVoice === voice.value && (
-                          <div className="w-2 h-2 rounded-full bg-primary" />
-                        )}
-                      </button>
+                    {Object.entries(groupedVoices).map(([category, voices]) => (
+                      <div key={category}>
+                        <p className="px-3 pt-2 pb-1 text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                          {categoryLabels[category] || category}
+                        </p>
+                        {voices.map((voice) => (
+                          <button
+                            key={voice.value}
+                            onClick={() => handleVoiceChange(voice.value)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
+                              narrationVoice === voice.value
+                                ? "bg-primary/10 text-primary"
+                                : "hover:bg-primary/5 text-text"
+                            )}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold">{voice.label}</p>
+                                <span className="text-[10px] text-text-muted">
+                                  {voice.gender === "female" ? "♀" : "♂"}
+                                </span>
+                              </div>
+                              <p className="text-xs text-text-muted">{voice.description}</p>
+                            </div>
+                            {narrationVoice === voice.value && (
+                              <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </motion.div>

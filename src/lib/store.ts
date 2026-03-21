@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ChildProfile, Story, StoryChapter, NarrationVoice } from "./types"
+import type { ChildProfile, Story, StoryChapter, NarrationVoice, StoryLanguage } from "./types"
 import { generateId } from "./utils"
 import { getSupabase } from "./supabase"
 
@@ -82,6 +82,7 @@ async function syncStoryToSupabase(story: Story) {
       theme: story.theme,
       child_name: story.childName,
       prompt: story.prompt || null,
+      language: story.language || "en",
       created_at: story.createdAt,
     })
 
@@ -263,6 +264,7 @@ export const useAppStore = create<AppStore>()(
               childProfileId: s.child_profile_id,
               childName: s.child_name,
               prompt: s.prompt || undefined,
+              language: s.language || "en",
               chapters: chaptersByStory.get(s.id) || [],
               createdAt: s.created_at,
             }))

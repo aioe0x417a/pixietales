@@ -32,10 +32,18 @@ function getStoryModelId() {
   return process.env.STORY_MODEL_ID || "anthropic/claude-3.5-haiku"
 }
 
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  ms: "Bahasa Melayu (Malay)",
+  zh: "中文 (Mandarin Chinese)",
+  ta: "தமிழ் (Tamil)",
+  th: "ไทย (Thai)",
+}
+
 export async function generateStory(
   req: StoryGenerationRequest
 ): Promise<StoryGenerationResponse> {
-  const { childName, childAge, theme, customPrompt, companion, chapterCount = 4 } = req
+  const { childName, childAge, theme, customPrompt, companion, chapterCount = 4, language = "en" } = req
   const wordRange = getWordCount(childAge)
   const client = getStoryClient()
   const model = getStoryModelId()
@@ -62,6 +70,11 @@ export async function generateStory(
     custom: customPrompt || "a magical bedtime story",
   }
 
+  const langName = LANGUAGE_NAMES[language] || "English"
+  const langInstruction = language !== "en"
+    ? `\n- IMPORTANT: Write the ENTIRE story (title, chapter titles, and content) in ${langName}. All text must be in ${langName}.`
+    : ""
+
   const systemPrompt = `You are a children's storyteller creating bedtime stories for a ${childAge}-year-old child named ${childName}.
 
 Rules:
@@ -73,7 +86,7 @@ Rules:
 - Include sensory details (soft sounds, warm colors, gentle feelings)
 - End with ${childName} feeling safe, happy, and sleepy
 - No scary elements, violence, or anything anxiety-inducing
-- Weave in gentle moral lessons naturally
+- Weave in gentle moral lessons naturally${langInstruction}
 
 Return ONLY valid JSON in this exact format:
 {
@@ -85,11 +98,13 @@ Return ONLY valid JSON in this exact format:
       "imagePrompt": "A soft watercolor illustration of [scene description], children's storybook style, warm gentle colors, dreamy atmosphere"
     }
   ]
-}`
+}
+
+Note: imagePrompt must always be in English regardless of story language.`
 
   const userPrompt = `Create a bedtime story about ${themeDescriptions[theme] || "a magical adventure"} with ${chapterCount} chapters for ${childName} (age ${childAge}).${
     customPrompt ? `\n\nSpecific request: ${customPrompt}` : ""
-  }`
+  }${language !== "en" ? `\n\nWrite the story in ${langName}.` : ""}`
 
   const response = await client.chat.completions.create({
     model,
@@ -120,11 +135,17 @@ export async function generateStoryFromDrawing(
   imageBase64: string,
   childName: string,
   childAge: number,
-  companion: string
+  companion: string,
+  language: string = "en"
 ): Promise<StoryGenerationResponse> {
   const wordRange = getWordCount(childAge)
   const client = getStoryClient()
   const model = getStoryModelId()
+
+  const langName = LANGUAGE_NAMES[language] || "English"
+  const langInstruction = language !== "en"
+    ? `\n- Write the ENTIRE story in ${langName}`
+    : ""
 
   const response = await client.chat.completions.create({
     model,
@@ -137,14 +158,15 @@ Rules:
 - Create 3-4 chapters, each ${wordRange.min}-${wordRange.max} words
 - Include their companion: ${companion}
 - Make it a gentle bedtime story
-- End peacefully
+- End peacefully${langInstruction}
 
-Return ONLY valid JSON: { "title": "...", "chapters": [{ "title": "...", "content": "...", "imagePrompt": "A soft watercolor illustration of [scene], children's storybook style" }] }`,
+Return ONLY valid JSON: { "title": "...", "chapters": [{ "title": "...", "content": "...", "imagePrompt": "A soft watercolor illustration of [scene], children's storybook style" }] }
+Note: imagePrompt must always be in English.`,
       },
       {
         role: "user",
         content: [
-          { type: "text", text: "Create a bedtime story inspired by this drawing:" },
+          { type: "text", text: `Create a bedtime story inspired by this drawing:${language !== "en" ? ` Write in ${langName}.` : ""}` },
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
         ],
       },
