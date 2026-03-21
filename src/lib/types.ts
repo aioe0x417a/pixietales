@@ -68,6 +68,7 @@ export const STORY_LANGUAGES: { value: StoryLanguage; label: string; nativeLabel
 export type NarrationVoice = string
 
 export type VoiceCategory = "storyteller" | "child" | "character"
+export type VoiceAge = "child" | "adult" | "elderly"
 
 export interface NarrationVoiceOption {
   value: string
@@ -76,46 +77,49 @@ export interface NarrationVoiceOption {
   language: StoryLanguage
   category: VoiceCategory
   gender: "male" | "female"
+  age: VoiceAge
+}
+
+export const VOICE_AGE_LABELS: Record<VoiceAge, string> = {
+  child: "Child",
+  adult: "Adult",
+  elderly: "Grandparent",
 }
 
 export const NARRATION_VOICES: NarrationVoiceOption[] = [
-  // ── English: Storyteller ─────────────────────
-  { value: "en-US-JennyNeural", label: "Jenny", description: "Warm & gentle", language: "en", category: "storyteller", gender: "female" },
-  { value: "en-US-SaraNeural", label: "Sara", description: "Soft & gentle", language: "en", category: "storyteller", gender: "female" },
-  { value: "en-US-MichelleNeural", label: "Michelle", description: "Gentle & soothing", language: "en", category: "storyteller", gender: "female" },
-  { value: "en-US-GuyNeural", label: "Guy", description: "Warm male", language: "en", category: "storyteller", gender: "male" },
-  { value: "en-GB-RyanNeural", label: "Ryan", description: "British narrator", language: "en", category: "storyteller", gender: "male" },
-  { value: "en-IE-EmilyNeural", label: "Emily", description: "Irish fairy tale", language: "en", category: "storyteller", gender: "female" },
-
-  // ── English: Child ───────────────────────────
-  { value: "en-US-AnaNeural", label: "Ana", description: "Child voice (US)", language: "en", category: "child", gender: "female" },
-  { value: "en-GB-MaisieNeural", label: "Maisie", description: "Child voice (British)", language: "en", category: "child", gender: "female" },
-
-  // ── English: Character ───────────────────────
-  { value: "en-US-AriaNeural", label: "Aria", description: "Confident narrator", language: "en", category: "character", gender: "female" },
-  { value: "en-US-RogerNeural", label: "Roger", description: "Lively & expressive", language: "en", category: "character", gender: "male" },
-  { value: "en-GB-SoniaNeural", label: "Sonia", description: "Warm British", language: "en", category: "character", gender: "female" },
+  // ── English ──────────────────────────────────
+  { value: "en-US-JennyNeural", label: "Jenny", description: "Warm & gentle", language: "en", category: "storyteller", gender: "female", age: "adult" },
+  { value: "en-US-SaraNeural", label: "Sara", description: "Soft & gentle", language: "en", category: "storyteller", gender: "female", age: "adult" },
+  { value: "en-US-MichelleNeural", label: "Michelle", description: "Gentle & soothing", language: "en", category: "storyteller", gender: "female", age: "elderly" },
+  { value: "en-US-GuyNeural", label: "Guy", description: "Warm male", language: "en", category: "storyteller", gender: "male", age: "adult" },
+  { value: "en-GB-RyanNeural", label: "Ryan", description: "British narrator", language: "en", category: "storyteller", gender: "male", age: "elderly" },
+  { value: "en-IE-EmilyNeural", label: "Emily", description: "Irish fairy tale", language: "en", category: "storyteller", gender: "female", age: "elderly" },
+  { value: "en-US-AnaNeural", label: "Ana", description: "Child voice (US)", language: "en", category: "child", gender: "female", age: "child" },
+  { value: "en-GB-MaisieNeural", label: "Maisie", description: "Child voice (British)", language: "en", category: "child", gender: "female", age: "child" },
+  { value: "en-US-AriaNeural", label: "Aria", description: "Confident narrator", language: "en", category: "character", gender: "female", age: "adult" },
+  { value: "en-US-RogerNeural", label: "Roger", description: "Lively & expressive", language: "en", category: "character", gender: "male", age: "adult" },
+  { value: "en-GB-SoniaNeural", label: "Sonia", description: "Warm British", language: "en", category: "character", gender: "female", age: "adult" },
 
   // ── Malay ────────────────────────────────────
-  { value: "ms-MY-YasminNeural", label: "Yasmin", description: "Friendly female", language: "ms", category: "storyteller", gender: "female" },
-  { value: "ms-MY-OsmanNeural", label: "Osman", description: "Friendly male", language: "ms", category: "storyteller", gender: "male" },
+  { value: "ms-MY-YasminNeural", label: "Yasmin", description: "Friendly female", language: "ms", category: "storyteller", gender: "female", age: "adult" },
+  { value: "ms-MY-OsmanNeural", label: "Osman", description: "Friendly male", language: "ms", category: "storyteller", gender: "male", age: "adult" },
 
   // ── Chinese (Mandarin) ──────────────────────
-  { value: "zh-CN-XiaoxiaoNeural", label: "Xiaoxiao", description: "Warm female", language: "zh", category: "storyteller", gender: "female" },
-  { value: "zh-CN-YunxiNeural", label: "Yunxi", description: "Lively narrator", language: "zh", category: "storyteller", gender: "male" },
-  { value: "zh-CN-YunxiaNeural", label: "Yunxia", description: "Cute child voice", language: "zh", category: "child", gender: "male" },
-  { value: "zh-CN-XiaoyiNeural", label: "Xiaoyi", description: "Lively & playful", language: "zh", category: "character", gender: "female" },
-  { value: "zh-CN-YunyangNeural", label: "Yunyang", description: "Professional narrator", language: "zh", category: "character", gender: "male" },
+  { value: "zh-CN-XiaoxiaoNeural", label: "Xiaoxiao", description: "Warm female", language: "zh", category: "storyteller", gender: "female", age: "adult" },
+  { value: "zh-CN-YunxiNeural", label: "Yunxi", description: "Lively narrator", language: "zh", category: "storyteller", gender: "male", age: "adult" },
+  { value: "zh-CN-YunxiaNeural", label: "Yunxia", description: "Cute child voice", language: "zh", category: "child", gender: "male", age: "child" },
+  { value: "zh-CN-XiaoyiNeural", label: "Xiaoyi", description: "Lively & playful", language: "zh", category: "character", gender: "female", age: "adult" },
+  { value: "zh-CN-YunyangNeural", label: "Yunyang", description: "Professional narrator", language: "zh", category: "character", gender: "male", age: "adult" },
 
   // ── Tamil ───────────────────────────────────
-  { value: "ta-IN-PallaviNeural", label: "Pallavi", description: "Friendly female", language: "ta", category: "storyteller", gender: "female" },
-  { value: "ta-IN-ValluvarNeural", label: "Valluvar", description: "Friendly male", language: "ta", category: "storyteller", gender: "male" },
-  { value: "ta-MY-KaniNeural", label: "Kani", description: "Malaysian Tamil", language: "ta", category: "storyteller", gender: "female" },
-  { value: "ta-MY-SuryaNeural", label: "Surya", description: "Malaysian Tamil male", language: "ta", category: "storyteller", gender: "male" },
+  { value: "ta-IN-PallaviNeural", label: "Pallavi", description: "Friendly female", language: "ta", category: "storyteller", gender: "female", age: "adult" },
+  { value: "ta-IN-ValluvarNeural", label: "Valluvar", description: "Friendly male", language: "ta", category: "storyteller", gender: "male", age: "adult" },
+  { value: "ta-MY-KaniNeural", label: "Kani", description: "Malaysian Tamil", language: "ta", category: "storyteller", gender: "female", age: "adult" },
+  { value: "ta-MY-SuryaNeural", label: "Surya", description: "Malaysian Tamil male", language: "ta", category: "storyteller", gender: "male", age: "adult" },
 
   // ── Thai ────────────────────────────────────
-  { value: "th-TH-PremwadeeNeural", label: "Premwadee", description: "Friendly female", language: "th", category: "storyteller", gender: "female" },
-  { value: "th-TH-NiwatNeural", label: "Niwat", description: "Friendly male", language: "th", category: "storyteller", gender: "male" },
+  { value: "th-TH-PremwadeeNeural", label: "Premwadee", description: "Friendly female", language: "th", category: "storyteller", gender: "female", age: "adult" },
+  { value: "th-TH-NiwatNeural", label: "Niwat", description: "Friendly male", language: "th", category: "storyteller", gender: "male", age: "adult" },
 ]
 
 export function getVoicesForLanguage(lang: StoryLanguage): NarrationVoiceOption[] {
@@ -140,6 +144,8 @@ export interface Story {
   createdAt: string
   duration?: number
   language?: StoryLanguage
+  narrationVoice?: string
+  narrationEnabled?: boolean
 }
 
 export interface StoryGenerationRequest {

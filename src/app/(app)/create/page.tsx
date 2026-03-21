@@ -11,12 +11,19 @@ import {
   ArrowRight,
   Loader2,
   ImagePlus,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/input"
 import { useAppStore } from "@/lib/store"
 import { getSupabase } from "@/lib/supabase"
-import { THEMES, COMPANIONS, STORY_LANGUAGES, type Theme, type Companion, type StoryLanguage } from "@/lib/types"
+import {
+  THEMES, COMPANIONS, STORY_LANGUAGES, NARRATION_VOICES, VOICE_AGE_LABELS,
+  getVoicesForLanguage, getDefaultVoice,
+  type Theme, type Companion, type StoryLanguage, type VoiceAge,
+} from "@/lib/types"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 type Step = "theme" | "customize" | "generating"
@@ -44,6 +51,11 @@ function CreateStoryPage() {
   const [customPrompt, setCustomPrompt] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<StoryLanguage>("en")
+  const [chapterCount, setChapterCount] = useState(4)
+  const [narrationEnabled, setNarrationEnabled] = useState(true)
+  const [selectedGender, setSelectedGender] = useState<"male" | "female">("female")
+  const [selectedAge, setSelectedAge] = useState<VoiceAge>("adult")
+  const [selectedVoice, setSelectedVoice] = useState(getDefaultVoice("en"))
   const [drawingMode, setDrawingMode] = useState(false)
   const [drawingBase64, setDrawingBase64] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -64,6 +76,47 @@ function CreateStoryPage() {
         </Button>
       </div>
     )
+  }
+
+  // Derived voice lists for cascading dropdowns
+  const voicesForLang = getVoicesForLanguage(selectedLanguage)
+  const availableGenders = [...new Set(voicesForLang.map((v) => v.gender))]
+  const voicesForGender = voicesForLang.filter((v) => v.gender === selectedGender)
+  const availableAges = [...new Set(voicesForGender.map((v) => v.age))]
+  const voicesForAge = voicesForGender.filter((v) => v.age === selectedAge)
+
+  // Auto-correct selections when language changes
+  function handleLanguageChange(lang: StoryLanguage) {
+    setSelectedLanguage(lang)
+    const voices = getVoicesForLanguage(lang)
+    // Reset to first available voice for this language
+    const firstFemale = voices.find((v) => v.gender === "female")
+    if (firstFemale) {
+      setSelectedGender("female")
+      setSelectedAge(firstFemale.age)
+      setSelectedVoice(firstFemale.value)
+    } else if (voices.length > 0) {
+      setSelectedGender(voices[0].gender)
+      setSelectedAge(voices[0].age)
+      setSelectedVoice(voices[0].value)
+    }
+  }
+
+  function handleGenderChange(gender: "male" | "female") {
+    setSelectedGender(gender)
+    const filtered = voicesForLang.filter((v) => v.gender === gender)
+    if (filtered.length > 0) {
+      setSelectedAge(filtered[0].age)
+      setSelectedVoice(filtered[0].value)
+    }
+  }
+
+  function handleAgeChange(age: VoiceAge) {
+    setSelectedAge(age)
+    const filtered = voicesForLang.filter((v) => v.gender === selectedGender && v.age === age)
+    if (filtered.length > 0) {
+      setSelectedVoice(filtered[0].value)
+    }
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +162,7 @@ function CreateStoryPage() {
           customPrompt: customPrompt || undefined,
           companion: activeProfile.companion,
           drawingBase64: drawingBase64 || undefined,
-          chapterCount: 4,
+          chapterCount,
           generateImages: true,
           language: selectedLanguage,
         }),
@@ -130,6 +183,8 @@ function CreateStoryPage() {
         childName: activeProfile.name,
         prompt: customPrompt || undefined,
         language: selectedLanguage,
+        narrationVoice: narrationEnabled ? selectedVoice : undefined,
+        narrationEnabled,
       })
 
       toast.success("Story created!")
@@ -272,12 +327,13 @@ function CreateStoryPage() {
                   {STORY_LANGUAGES.map((lang) => (
                     <button
                       key={lang.value}
-                      onClick={() => setSelectedLanguage(lang.value)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer text-center ${
+                      onClick={() => handleLanguageChange(lang.value)}
+                      className={cn(
+                        "flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer text-center",
                         selectedLanguage === lang.value
                           ? "border-primary bg-primary/5 shadow-md"
                           : "border-primary/10 hover:border-primary/30"
-                      }`}
+                      )}
                     >
                       <span className="text-sm font-semibold text-text">{lang.nativeLabel}</span>
                       {lang.value !== "en" && (
@@ -286,6 +342,147 @@ function CreateStoryPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Chapter count */}
+              <div>
+                <label className="block text-sm font-semibold text-text mb-2">
+                  Number of Chapters
+                </label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setChapterCount(n)}
+                      className={cn(
+                        "flex-1 py-3 rounded-xl border-2 font-semibold transition-all cursor-pointer",
+                        chapterCount === n
+                          ? "border-primary bg-primary/5 text-primary shadow-md"
+                          : "border-primary/10 text-text-muted hover:border-primary/30"
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Narration toggle + voice selector */}
+              <div className="p-4 rounded-xl border border-primary/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {narrationEnabled ? (
+                      <Volume2 className="w-5 h-5 text-primary" />
+                    ) : (
+                      <VolumeX className="w-5 h-5 text-text-muted" />
+                    )}
+                    <label className="text-sm font-semibold text-text">
+                      Voice Narration
+                    </label>
+                  </div>
+                  <button
+                    onClick={() => setNarrationEnabled(!narrationEnabled)}
+                    className={cn(
+                      "relative w-12 h-7 rounded-full transition-colors cursor-pointer",
+                      narrationEnabled ? "bg-primary" : "bg-primary/20"
+                    )}
+                    aria-label="Toggle narration"
+                  >
+                    <div className={cn(
+                      "absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                      narrationEnabled ? "translate-x-6" : "translate-x-1"
+                    )} />
+                  </button>
+                </div>
+
+                {narrationEnabled && (
+                  <div className="space-y-3 pt-2 border-t border-primary/10">
+                    {/* Gender */}
+                    <div>
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+                        Gender
+                      </label>
+                      <div className="flex gap-2">
+                        {(["female", "male"] as const).filter((g) => availableGenders.includes(g)).map((g) => (
+                          <button
+                            key={g}
+                            onClick={() => handleGenderChange(g)}
+                            className={cn(
+                              "flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all cursor-pointer",
+                              selectedGender === g
+                                ? "border-primary bg-primary/5 text-primary"
+                                : "border-primary/10 text-text-muted hover:border-primary/30"
+                            )}
+                          >
+                            {g === "female" ? "Female" : "Male"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Age */}
+                    <div>
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+                        Voice Type
+                      </label>
+                      <div className="flex gap-2">
+                        {(["child", "adult", "elderly"] as const).filter((a) => availableAges.includes(a)).map((a) => (
+                          <button
+                            key={a}
+                            onClick={() => handleAgeChange(a)}
+                            className={cn(
+                              "flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all cursor-pointer",
+                              selectedAge === a
+                                ? "border-primary bg-primary/5 text-primary"
+                                : "border-primary/10 text-text-muted hover:border-primary/30"
+                            )}
+                          >
+                            {VOICE_AGE_LABELS[a]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Voice */}
+                    <div>
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+                        Voice
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {voicesForAge.map((voice) => (
+                          <button
+                            key={voice.value}
+                            onClick={() => setSelectedVoice(voice.value)}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all cursor-pointer",
+                              selectedVoice === voice.value
+                                ? "border-primary bg-primary/5"
+                                : "border-primary/10 hover:border-primary/30"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "text-sm font-semibold truncate",
+                                selectedVoice === voice.value ? "text-primary" : "text-text"
+                              )}>
+                                {voice.label}
+                              </p>
+                              <p className="text-[11px] text-text-muted truncate">{voice.description}</p>
+                            </div>
+                            {selectedVoice === voice.value && (
+                              <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                        {voicesForAge.length === 0 && (
+                          <p className="col-span-2 text-sm text-text-muted py-2 text-center">
+                            No voices available for this combination
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Drawing preview */}
@@ -312,12 +509,12 @@ function CreateStoryPage() {
                 />
               </div>
 
-              {/* Story settings */}
+              {/* Story settings summary */}
               <div className="p-4 rounded-xl bg-surface-alt border border-primary/5">
                 <h3 className="font-heading font-semibold text-text text-sm mb-3">
                   Story Settings
                 </h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-text-muted">Child:</span>{" "}
                     <span className="font-semibold">{activeProfile.name}</span>
@@ -339,12 +536,20 @@ function CreateStoryPage() {
                   </div>
                   <div>
                     <span className="text-text-muted">Chapters:</span>{" "}
-                    <span className="font-semibold">4</span>
+                    <span className="font-semibold">{chapterCount}</span>
                   </div>
                   <div>
                     <span className="text-text-muted">Language:</span>{" "}
                     <span className="font-semibold">
                       {STORY_LANGUAGES.find((l) => l.value === selectedLanguage)?.label || "English"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-text-muted">Narration:</span>{" "}
+                    <span className="font-semibold">
+                      {narrationEnabled
+                        ? NARRATION_VOICES.find((v) => v.value === selectedVoice)?.label || "On"
+                        : "Off"}
                     </span>
                   </div>
                 </div>
