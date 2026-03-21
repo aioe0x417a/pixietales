@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { BookOpen, Search, Clock, Trash2, Filter } from "lucide-react"
+import { BookOpen, Search, Clock, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -11,12 +11,36 @@ import { useAppStore } from "@/lib/store"
 import { THEMES } from "@/lib/types"
 import { toast } from "sonner"
 
+type SortOption = "newest" | "oldest" | "az"
+
+function StoryImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <div className="h-40 overflow-hidden relative">
+      {!loaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 animate-pulse" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
+  )
+}
+
 export default function LibraryPage() {
   const stories = useAppStore((s) => s.stories)
   const activeProfile = useAppStore((s) => s.getActiveProfile())
   const removeStory = useAppStore((s) => s.removeStory)
   const [search, setSearch] = useState("")
   const [filterTheme, setFilterTheme] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [sortOption, setSortOption] = useState<SortOption>("newest")
 
   const filteredStories = stories
     .filter((s) =>
@@ -28,16 +52,25 @@ export default function LibraryPage() {
         s.childName.toLowerCase().includes(search.toLowerCase())
     )
     .filter((s) => (filterTheme ? s.theme === filterTheme : true))
+    .sort((a, b) => {
+      if (sortOption === "newest") {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      }
+      if (sortOption === "oldest") {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      }
+      // az
+      return a.title.localeCompare(b.title)
+    })
 
   const profileStories = stories.filter((s) =>
     activeProfile ? s.childProfileId === activeProfile.id : true
   )
 
-  const handleDelete = (id: string, title: string) => {
-    if (confirm(`Delete "${title}"?`)) {
-      removeStory(id)
-      toast.success("Story deleted")
-    }
+  const handleDeleteConfirm = (id: string) => {
+    removeStory(id)
+    toast.success("Story deleted")
+    setConfirmDeleteId(null)
   }
 
   return (
@@ -53,7 +86,7 @@ export default function LibraryPage() {
         </p>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search, Filter, and Sort */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
@@ -64,7 +97,15 @@ export default function LibraryPage() {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          style={{
+            maskImage:
+              "linear-gradient(to right, black calc(100% - 32px), transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, black calc(100% - 32px), transparent)",
+          }}
+        >
           <Button
             variant={filterTheme === null ? "primary" : "ghost"}
             size="sm"
@@ -87,6 +128,16 @@ export default function LibraryPage() {
             </Button>
           ))}
         </div>
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value as SortOption)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer shrink-0"
+          aria-label="Sort stories"
+        >
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="az">A-Z</option>
+        </select>
       </div>
 
       {/* Stories Grid */}
@@ -122,13 +173,10 @@ export default function LibraryPage() {
                 <Link href={`/story/${story.id}`} className="cursor-pointer">
                   {/* Book cover */}
                   {story.chapters[0]?.imageUrl ? (
-                    <div className="h-40 overflow-hidden">
-                      <img
-                        src={story.chapters[0].imageUrl}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
+                    <StoryImage
+                      src={story.chapters[0].imageUrl}
+                      alt={story.title}
+                    />
                   ) : (
                     <div className="h-40 bg-gradient-to-br from-primary/10 via-accent/10 to-secondary/10 flex items-center justify-center">
                       <BookOpen className="w-12 h-12 text-primary/30 group-hover:scale-110 transition-transform" />
@@ -137,7 +185,10 @@ export default function LibraryPage() {
                 </Link>
                 <CardContent className="p-4">
                   <Link href={`/story/${story.id}`} className="cursor-pointer">
-                    <h3 className="font-heading font-semibold text-text truncate group-hover:text-primary transition-colors">
+                    <h3
+                      className="font-heading font-semibold text-text truncate group-hover:text-primary transition-colors"
+                      title={story.title}
+                    >
                       {story.title}
                     </h3>
                   </Link>
@@ -148,13 +199,33 @@ export default function LibraryPage() {
                       <span>&middot;</span>
                       {story.chapters.length} ch.
                     </div>
-                    <button
-                      onClick={() => handleDelete(story.id, story.title)}
-                      className="text-text-muted/40 hover:text-error transition-colors cursor-pointer p-2"
-                      aria-label={`Delete ${story.title}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {confirmDeleteId === story.id ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-text-muted">Delete?</span>
+                        <button
+                          onClick={() => handleDeleteConfirm(story.id)}
+                          className="text-xs font-semibold text-white bg-error hover:bg-error/90 transition-colors px-2 py-1 rounded cursor-pointer"
+                          aria-label="Confirm delete"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="text-xs font-semibold text-text-muted hover:text-text transition-colors px-2 py-1 rounded cursor-pointer"
+                          aria-label="Cancel delete"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(story.id)}
+                        className="text-text-muted/40 hover:text-error transition-colors cursor-pointer p-2"
+                        aria-label={`Delete ${story.title}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                   {story.theme !== "custom" && story.theme !== "drawing" && (
                     <span

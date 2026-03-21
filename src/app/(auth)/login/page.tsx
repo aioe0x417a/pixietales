@@ -1,19 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Sparkles, Loader2, Mail, Lock } from "lucide-react"
+import { Sparkles, Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getSupabase } from "@/lib/supabase"
+import { useAuth } from "@/components/auth/auth-provider"
 import { toast } from "sonner"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/dashboard")
+    }
+  }, [user, authLoading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +41,15 @@ export default function LoginPage() {
 
     toast.success("Welcome back!")
     router.push("/dashboard")
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Enter your email first")
+      return
+    }
+    await getSupabase().auth.resetPasswordForEmail(email)
+    toast.success("Check your email for a password reset link")
   }
 
   return (
@@ -77,16 +95,31 @@ export default function LoginPage() {
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <Input
               id="login-password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Your password"
-              className="pl-10"
+              className="pl-10 pr-10"
               required
               minLength={6}
               autoComplete="current-password"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            className="mt-1.5 text-xs text-primary hover:underline"
+          >
+            Forgot password?
+          </button>
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>

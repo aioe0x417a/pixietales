@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, Suspense } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -12,6 +12,19 @@ import {
   ImagePlus,
   Volume2,
   VolumeX,
+  BookOpen,
+  Palette,
+  Mic,
+  Compass,
+  PawPrint,
+  Rocket,
+  Waves,
+  HeartHandshake,
+  Bone,
+  Crown,
+  Shield,
+  Leaf,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/input"
@@ -26,6 +39,36 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
 type Step = "theme" | "customize" | "generating"
+
+const THEME_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  compass: Compass,
+  "paw-print": PawPrint,
+  rocket: Rocket,
+  waves: Waves,
+  "heart-handshake": HeartHandshake,
+  "wand-2": Wand2,
+  bone: Bone,
+  crown: Crown,
+  shield: Shield,
+  leaf: Leaf,
+  sparkles: Sparkles,
+}
+
+const CHAPTER_READ_TIMES: Record<number, string> = {
+  1: "~2 min",
+  2: "~5 min",
+  3: "~8 min",
+  4: "~12 min",
+}
+
+const GENERATION_STEPS = [
+  { label: "Writing your story...", Icon: BookOpen },
+  { label: "Creating illustrations...", Icon: Palette },
+  { label: "Preparing narration...", Icon: Mic },
+  { label: "Almost ready...", Icon: Sparkles },
+]
+
+const GENERATION_STEP_TIMES = [0, 8000, 18000, 28000]
 
 export default function CreateStoryPageWrapper() {
   return (
@@ -57,9 +100,36 @@ function CreateStoryPage() {
   const [selectedVoice, setSelectedVoice] = useState(getDefaultVoice("en"))
   const [drawingMode, setDrawingMode] = useState(false)
   const [drawingBase64, setDrawingBase64] = useState<string | null>(null)
+  const [drawingPreview, setDrawingPreview] = useState<string | null>(null)
   const [drawingMimeType, setDrawingMimeType] = useState<string>("image/jpeg")
+  const [generationStep, setGenerationStep] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Multi-step generation progress indicator
+  useEffect(() => {
+    if (!isGenerating) {
+      setGenerationStep(0)
+      return
+    }
+    const timers: ReturnType<typeof setTimeout>[] = []
+    GENERATION_STEP_TIMES.forEach((delay, idx) => {
+      if (idx === 0) return // step 0 is the default
+      timers.push(setTimeout(() => setGenerationStep(idx), delay))
+    })
+    return () => timers.forEach(clearTimeout)
+  }, [isGenerating])
+
+  // Browser navigation guard during generation
+  useEffect(() => {
+    if (!isGenerating) return
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [isGenerating])
 
   if (!activeProfile) {
     return (
@@ -151,10 +221,12 @@ function CreateStoryPage() {
       // Magic bytes look good -- proceed with base64 encoding
       const base64Reader = new FileReader()
       base64Reader.onload = (ev) => {
-        const base64 = (ev.target?.result as string)?.split(",")[1]
+        const dataUrl = ev.target?.result as string
+        const base64 = dataUrl?.split(",")[1]
         if (base64) {
           setDrawingMimeType(file.type || "image/jpeg")
           setDrawingBase64(base64)
+          setDrawingPreview(dataUrl)
           setDrawingMode(true)
           setSelectedTheme("custom")
           setStep("customize")
@@ -179,6 +251,7 @@ function CreateStoryPage() {
     setStep("generating")
     setIsGenerating(true)
 
+    let succeeded = false
     try {
       abortControllerRef.current = new AbortController()
       const { data: { session } } = await getSupabase().auth.getSession()
@@ -199,6 +272,7 @@ function CreateStoryPage() {
           chapterCount,
           generateImages: true,
           language: selectedLanguage,
+          childProfileId: activeProfile.id,
         }),
       })
 
@@ -221,6 +295,7 @@ function CreateStoryPage() {
         narrationEnabled,
       })
 
+      succeeded = true
       toast.success("Story created!")
       router.push(`/story/${storyId}`)
     } catch (error) {
@@ -230,8 +305,11 @@ function CreateStoryPage() {
         console.error("Generation error:", error)
         toast.error((error as Error).message || "Failed to generate story. Please try again.")
       }
-      setStep("customize")
-      setIsGenerating(false)
+    } finally {
+      if (!succeeded) {
+        setStep("customize")
+        setIsGenerating(false)
+      }
     }
   }
 
@@ -278,10 +356,10 @@ function CreateStoryPage() {
                     className="w-14 h-14 rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${theme.color}15` }}
                   >
-                    <Sparkles
-                      className="w-7 h-7"
-                      style={{ color: theme.color }}
-                    />
+                    {(() => {
+                      const ThemeIcon = THEME_ICONS[theme.icon] || Sparkles
+                      return <ThemeIcon className="w-7 h-7" style={{ color: theme.color }} />
+                    })()}
                   </div>
                   <span className="font-heading font-semibold text-text">
                     {theme.label}
@@ -310,7 +388,7 @@ function CreateStoryPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.bmp"
                 onChange={handleImageUpload}
                 className="hidden"
               />
@@ -331,6 +409,7 @@ function CreateStoryPage() {
                 setStep("theme")
                 setSelectedTheme(null)
                 setDrawingBase64(null)
+                setDrawingPreview(null)
                 setDrawingMode(false)
               }}
               className="flex items-center gap-2 text-text-muted hover:text-primary transition-colors mb-6 cursor-pointer"
@@ -390,13 +469,16 @@ function CreateStoryPage() {
                       key={n}
                       onClick={() => setChapterCount(n)}
                       className={cn(
-                        "flex-1 py-3 rounded-xl border-2 font-semibold transition-all cursor-pointer",
+                        "flex-1 py-3 rounded-xl border-2 font-semibold transition-all cursor-pointer flex flex-col items-center gap-0.5",
                         chapterCount === n
                           ? "border-primary bg-primary/5 text-primary shadow-md"
                           : "border-primary/10 text-text-muted hover:border-primary/30"
                       )}
                     >
-                      {n}
+                      <span>{n}</span>
+                      <span className="text-[10px] font-normal text-text-muted">
+                        {CHAPTER_READ_TIMES[n]}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -522,12 +604,22 @@ function CreateStoryPage() {
 
               {/* Drawing preview */}
               {drawingBase64 && (
-                <div className="rounded-xl overflow-hidden border border-primary/10">
+                <div className="relative rounded-xl overflow-hidden border border-primary/10">
                   <img
-                    src={`data:${drawingMimeType};base64,${drawingBase64}`}
+                    src={drawingPreview || `data:${drawingMimeType};base64,${drawingBase64}`}
                     alt="Uploaded drawing"
                     className="w-full max-h-64 object-contain bg-white"
                   />
+                  <button
+                    onClick={() => {
+                      setDrawingBase64(null)
+                      setDrawingPreview(null)
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Remove drawing"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
 
@@ -541,7 +633,11 @@ function CreateStoryPage() {
                   onChange={(e) => setCustomPrompt(e.target.value)}
                   placeholder={`E.g., "Include a rainbow bridge and a friendly owl" or "A story about sharing toys with friends"`}
                   rows={3}
+                  maxLength={500}
                 />
+                <p className="text-xs text-text-muted mt-1 text-right">
+                  {(customPrompt?.length || 0)}/500
+                </p>
               </div>
 
               {/* Story settings summary */}
@@ -635,21 +731,43 @@ function CreateStoryPage() {
             <h2 className="font-heading text-2xl font-bold text-text mb-3">
               Creating {activeProfile.name}&apos;s Story...
             </h2>
-            <p className="text-text-muted max-w-md">
-              Our storyteller is weaving a magical tale with beautiful
-              illustrations. This usually takes about 30 seconds.
-            </p>
-            <div className="mt-6 flex items-center gap-2 text-sm text-primary">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Generating chapters and illustrations...
+
+            {/* Multi-step progress indicator */}
+            <div className="w-full max-w-sm mt-4 space-y-2">
+              {GENERATION_STEPS.map((s, idx) => {
+                const isActive = idx === generationStep
+                const isDone = idx < generationStep
+                const { Icon } = s
+                return (
+                  <div
+                    key={idx}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
+                      isActive
+                        ? "border-primary bg-primary/5 text-primary"
+                        : isDone
+                        ? "border-primary/20 bg-primary/5 text-primary/50"
+                        : "border-primary/10 text-text-muted/40"
+                    )}
+                  >
+                    {isActive ? (
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                    ) : (
+                      <Icon className="w-4 h-4 shrink-0" />
+                    )}
+                    <span className="text-sm font-semibold">{s.label}</span>
+                  </div>
+                )
+              })}
             </div>
+
             <button
               onClick={() => {
                 abortControllerRef.current?.abort()
                 setStep("customize")
                 setIsGenerating(false)
               }}
-              className="mt-4 text-sm text-text-muted hover:text-error transition-colors cursor-pointer"
+              className="mt-6 text-sm text-text-muted hover:text-error transition-colors cursor-pointer"
             >
               Cancel
             </button>

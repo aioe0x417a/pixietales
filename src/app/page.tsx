@@ -14,9 +14,11 @@ import {
   Wand2,
   CloudMoon,
   Heart,
+  ImagePlus,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { DemoStoryPlayer } from "@/components/demo-story-player"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -39,18 +41,18 @@ export default function LandingPage() {
               PixieTales
             </span>
           </Link>
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-text-muted hover:text-primary transition-colors cursor-pointer">
+          <div className="flex items-center gap-4 sm:gap-8">
+            <a href="#features" className="text-sm sm:text-base text-text-muted hover:text-primary transition-colors cursor-pointer">
               Features
             </a>
-            <a href="#how-it-works" className="text-text-muted hover:text-primary transition-colors cursor-pointer">
+            <a href="#how-it-works" className="hidden sm:inline text-text-muted hover:text-primary transition-colors cursor-pointer">
               How It Works
             </a>
-            <a href="#pricing" className="text-text-muted hover:text-primary transition-colors cursor-pointer">
+            <a href="#pricing" className="text-sm sm:text-base text-text-muted hover:text-primary transition-colors cursor-pointer">
               Pricing
             </a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Link href="/login">
               <Button size="sm" variant="outline">Sign In</Button>
             </Link>
@@ -167,34 +169,14 @@ export default function LandingPage() {
             </motion.div>
           </motion.div>
 
-          {/* Hero illustration placeholder */}
+          {/* Demo Story Player */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.6 }}
-            className="mt-16 max-w-4xl mx-auto"
+            className="mt-16"
           >
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 border border-primary/10 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 aspect-video flex items-center justify-center">
-              <div className="text-center p-12">
-                <div className="flex justify-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center float" style={{ animationDelay: "0s" }}>
-                    <Moon className="w-8 h-8 text-primary" />
-                  </div>
-                  <div className="w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center float" style={{ animationDelay: "0.5s" }}>
-                    <BookOpen className="w-8 h-8 text-secondary" />
-                  </div>
-                  <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center float" style={{ animationDelay: "1s" }}>
-                    <Sparkles className="w-8 h-8 text-accent" />
-                  </div>
-                </div>
-                <p className="font-heading text-2xl text-primary font-semibold">
-                  Story Preview Coming Soon
-                </p>
-                <p className="text-text-muted mt-2">
-                  Interactive demo with a magical story experience
-                </p>
-              </div>
-            </div>
+            <DemoStoryPlayer />
           </motion.div>
         </div>
       </section>
@@ -257,7 +239,7 @@ export default function LandingPage() {
                 bg: "bg-secondary/10",
               },
               {
-                icon: Palette,
+                icon: ImagePlus,
                 title: "Drawing to Story",
                 description:
                   "Upload your child's drawing and watch it transform into a magical adventure story.",

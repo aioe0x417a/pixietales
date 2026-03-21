@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Sparkles, PlusCircle, Library, Users, Menu, LogOut, Moon, X } from "lucide-react"
+import { Sparkles, PlusCircle, Library, Users, Menu, LogOut, Moon, Settings, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/auth/auth-provider"
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: Sparkles },
   { href: "/create", label: "Create", icon: PlusCircle },
   { href: "/library", label: "Library", icon: Library },
+  { href: "/profiles", label: "Profiles", icon: Users },
   { href: "/bedtime", label: "Bedtime", icon: Moon },
 ]
 
@@ -28,19 +29,20 @@ export function MobileNav() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowMenu(false)}
           />
-          <div className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] right-3 bg-surface border border-primary/10 rounded-2xl shadow-xl p-3 min-w-[200px] z-50">
+          <div role="menu" className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] right-3 bg-surface border border-primary/10 rounded-2xl shadow-xl p-3 min-w-[200px] z-50">
             <Link
-              href="/profiles"
+              role="menuitem"
+              href="/settings"
               onClick={() => setShowMenu(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer",
-                pathname === "/profiles"
+                pathname === "/settings"
                   ? "bg-primary/10 text-primary"
                   : "text-text-muted hover:bg-primary/5 hover:text-primary"
               )}
             >
-              <Users className="w-5 h-5" />
-              Profiles
+              <Settings className="w-5 h-5" />
+              Settings
             </Link>
             <div className="my-1 border-t border-primary/10" />
             {user && (
@@ -49,6 +51,7 @@ export function MobileNav() {
               </p>
             )}
             <button
+              role="menuitem"
               onClick={() => {
                 setShowMenu(false)
                 signOut()
@@ -74,7 +77,7 @@ export function MobileNav() {
                 className={cn(
                   "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 cursor-pointer min-w-[56px]",
                   isActive
-                    ? "text-primary"
+                    ? "text-primary bg-primary/10 rounded-xl"
                     : "text-text-muted hover:text-primary"
                 )}
               >

@@ -67,7 +67,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
 }
 
 export async function generateStory(
-  req: StoryGenerationRequest
+  req: StoryGenerationRequest,
+  recurringCharacters?: { character_name: string; description: string }[]
 ): Promise<StoryGenerationResponse> {
   const { childName, childAge, theme, customPrompt, companion, chapterCount = 4, language = "en" } = req
   const wordRange = getWordCount(childAge)
@@ -113,7 +114,11 @@ Rules:
 - End with ${childName} feeling safe, happy, and sleepy
 - No scary elements, violence, or anything anxiety-inducing
 - Weave in gentle moral lessons naturally${langInstruction}
-- imagePrompt must always be in English regardless of story language, describing a soft watercolor children's book illustration of the scene`
+- imagePrompt must always be in English regardless of story language, describing a soft watercolor children's book illustration of the scene${
+    recurringCharacters && recurringCharacters.length > 0
+      ? `\n\nCharacters from previous stories that ${childName} loves (you may include them as friendly cameos or references):\n${recurringCharacters.map((c) => `- ${c.character_name}: ${c.description}`).join("\n")}`
+      : ""
+  }`
 
   const userPrompt = `Create a bedtime story about ${themeDescriptions[theme] || "a magical adventure"} with ${chapterCount} chapters for ${childName} (age ${childAge}).${
     customPrompt ? `\n\nSpecific request: ${customPrompt}` : ""

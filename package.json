@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
+    "@stripe/stripe-js": "^8.11.0",
     "@supabase/supabase-js": "^2.99.3",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
@@ -21,6 +22,7 @@
     "server-only": "^0.0.1",
     "sharp": "^0.34.5",
     "sonner": "^2.0.7",
+    "stripe": "^20.4.1",
     "tailwind-merge": "^3.5.0",
     "zustand": "^5.0.12"
   },

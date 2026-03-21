@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import {
   Moon,
@@ -53,6 +53,13 @@ export default function BedtimePage() {
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null)
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null)
 
+  const handleExitBedtime = useCallback(() => {
+    stop()
+    setBedtimeMode(false)
+    setTimerMinutes(null)
+    setTimerRemaining(null)
+  }, [stop, setBedtimeMode])
+
   // Breathing exercise timer
   useEffect(() => {
     if (!showBreathing) return
@@ -79,9 +86,7 @@ export default function BedtimePage() {
     const interval = setInterval(() => {
       setTimerRemaining((prev) => {
         if (prev === null || prev <= 0) {
-          stop()
-          setTimerMinutes(null)
-          setBedtimeMode(false)
+          handleExitBedtime()
           return null
         }
         return prev - 1
@@ -89,7 +94,7 @@ export default function BedtimePage() {
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [timerMinutes, stop, setBedtimeMode])
+  }, [timerMinutes, handleExitBedtime])
 
   function handleToggleSound(soundId: AmbientSoundId) {
     toggle(soundId)
@@ -97,13 +102,6 @@ export default function BedtimePage() {
 
   function handleVolumeChange(newVol: number) {
     setVolume(newVol)
-  }
-
-  function handleExitBedtime() {
-    stop()
-    setBedtimeMode(false)
-    setTimerMinutes(null)
-    setTimerRemaining(null)
   }
 
   function formatTime(seconds: number) {
@@ -122,7 +120,7 @@ export default function BedtimePage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-heading text-3xl font-bold">
-            <Moon className="w-8 h-8 inline-block mr-2 text-primary" />
+            <Moon className="w-8 h-8 inline-block mr-2 text-primary" aria-hidden="true" />
             Bedtime Mode
           </h1>
           <p className="text-text-muted mt-1">
@@ -207,22 +205,21 @@ export default function BedtimePage() {
           </div>
 
           {/* Volume */}
-          {isPlaying && (
-            <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-surface-alt">
-              <VolumeX className="w-4 h-4 text-text-muted" />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={volume}
-                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="flex-1 accent-primary"
-                aria-label="Volume"
-              />
-              <Volume2 className="w-4 h-4 text-text-muted" />
-            </div>
-          )}
+          <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-surface-alt">
+            <VolumeX className="w-4 h-4 text-text-muted" />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+              disabled={!isPlaying}
+              className={cn("flex-1 accent-primary", !isPlaying && "opacity-40")}
+              aria-label="Volume"
+            />
+            <Volume2 className="w-4 h-4 text-text-muted" />
+          </div>
 
           {/* Timer */}
           <div className="mt-6">
@@ -237,6 +234,7 @@ export default function BedtimePage() {
                   onClick={() =>
                     setTimerMinutes(timerMinutes === mins ? null : mins)
                   }
+                  aria-pressed={timerMinutes === mins}
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer",
                     timerMinutes === mins
@@ -288,6 +286,12 @@ export default function BedtimePage() {
                   <p className="text-sm text-text-muted">
                     {BREATHING_STEPS[breathingStep].duration} seconds
                   </p>
+                  <div className="w-full max-w-[200px] mx-auto mt-3 h-1.5 rounded-full bg-primary/10 overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-100"
+                      style={{ width: `${breathingProgress}%` }}
+                    />
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -324,7 +328,7 @@ export default function BedtimePage() {
             <h2 className="font-heading text-xl font-semibold mb-4">
               Bedtime Story
             </h2>
-            <Link href="/create">
+            <Link href="/create?theme=magic">
               <div className="p-6 rounded-2xl border border-primary/10 hover:border-primary/20 hover:shadow-md transition-all cursor-pointer text-center group">
                 <BookOpen className="w-12 h-12 text-primary/40 mx-auto mb-3 group-hover:scale-110 transition-transform" />
                 <p className="font-heading font-semibold text-text mb-1">

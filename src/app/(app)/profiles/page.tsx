@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   Users,
@@ -23,6 +23,7 @@ import {
   type ChildProfile,
 } from "@/lib/types"
 import { toast } from "sonner"
+import { getSupabase } from "@/lib/supabase"
 
 export default function ProfilesPage() {
   const profiles = useAppStore((s) => s.profiles)
@@ -34,12 +35,42 @@ export default function ProfilesPage() {
 
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     age: 3,
     companion: "bunny" as Companion,
     favoriteThemes: [] as Theme[],
   })
+  const [charactersByProfile, setCharactersByProfile] = useState<Record<string, { id: string; character_name: string; description: string }[]>>({})
+
+  useEffect(() => {
+    async function loadCharacters() {
+      const { data } = await getSupabase()
+        .from("character_log")
+        .select("id, child_profile_id, character_name, description")
+        .order("created_at", { ascending: false })
+
+      if (data) {
+        const grouped: Record<string, typeof data> = {}
+        for (const char of data) {
+          const pid = char.child_profile_id
+          if (!grouped[pid]) grouped[pid] = []
+          grouped[pid].push(char)
+        }
+        setCharactersByProfile(grouped)
+      }
+    }
+    loadCharacters()
+  }, [profiles])
+
+  async function removeCharacter(charId: string, profileId: string) {
+    await getSupabase().from("character_log").delete().eq("id", charId)
+    setCharactersByProfile((prev) => ({
+      ...prev,
+      [profileId]: (prev[profileId] || []).filter((c) => c.id !== charId),
+    }))
+  }
 
   function resetForm() {
     setFormData({ name: "", age: 3, companion: "bunny", favoriteThemes: [] })
@@ -72,13 +103,6 @@ export default function ProfilesPage() {
       favoriteThemes: profile.favoriteThemes,
     })
     setIsCreating(true)
-  }
-
-  function handleDelete(id: string, name: string) {
-    if (confirm(`Remove ${name}'s profile? Their stories will be kept.`)) {
-      removeProfile(id)
-      toast.success("Profile removed")
-    }
   }
 
   function toggleTheme(theme: Theme) {
@@ -120,112 +144,120 @@ export default function ProfilesPage() {
               {editingId ? "Edit Profile" : "New Child Profile"}
             </h2>
 
-            <div className="space-y-6">
-              {/* Name */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Child&apos;s Name
-                </label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((p) => ({ ...p, name: e.target.value }))
-                  }
-                  placeholder="Enter name"
-                  autoFocus
-                />
-              </div>
-
-              {/* Age */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Age
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((age) => (
-                    <button
-                      key={age}
-                      onClick={() => setFormData((p) => ({ ...p, age }))}
-                      aria-label={`Age ${age}`}
-                      aria-pressed={formData.age === age}
-                      className={`w-10 h-10 rounded-xl font-heading font-bold text-base transition-all cursor-pointer ${
-                        formData.age === age
-                          ? "bg-primary text-white shadow-md"
-                          : "bg-primary/5 text-text hover:bg-primary/10"
-                      }`}
-                    >
-                      {age}
-                    </button>
-                  ))}
+            <form onSubmit={(e) => { e.preventDefault(); handleSave() }}>
+              <div className="space-y-6">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-text mb-2">
+                    Child&apos;s Name
+                  </label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((p) => ({ ...p, name: e.target.value }))
+                    }
+                    placeholder="Enter name"
+                    maxLength={30}
+                    autoFocus
+                  />
                 </div>
-              </div>
 
-              {/* Companion */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Story Companion
-                </label>
+                {/* Age */}
+                <div>
+                  <label className="block text-sm font-semibold text-text mb-2">
+                    Age
+                  </label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((age) => (
+                      <button
+                        key={age}
+                        type="button"
+                        onClick={() => setFormData((p) => ({ ...p, age }))}
+                        aria-label={`Age ${age}`}
+                        aria-pressed={formData.age === age}
+                        className={`w-10 h-10 rounded-xl font-heading font-bold text-base transition-all cursor-pointer ${
+                          formData.age === age
+                            ? "bg-primary text-white shadow-md"
+                            : "bg-primary/5 text-text hover:bg-primary/10"
+                        }`}
+                      >
+                        {age}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Companion */}
+                <div>
+                  <label className="block text-sm font-semibold text-text mb-2">
+                    Story Companion
+                  </label>
+                  <div className="flex gap-3">
+                    {COMPANIONS.map((comp) => (
+                      <button
+                        key={comp.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((p) => ({ ...p, companion: comp.value }))
+                        }
+                        aria-pressed={formData.companion === comp.value}
+                        aria-label={comp.label}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all cursor-pointer ${
+                          formData.companion === comp.value
+                            ? "bg-primary/10 border-2 border-primary shadow-md"
+                            : "bg-surface-alt border-2 border-transparent hover:border-primary/20"
+                        }`}
+                      >
+                        <span className="text-2xl">{comp.emoji}</span>
+                        <span className="text-xs font-semibold text-text">
+                          {comp.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Favorite Themes */}
+                <div>
+                  <label className="block text-sm font-semibold text-text mb-2">
+                    Favorite Themes (optional)
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {THEMES.map((theme) => (
+                      <button
+                        key={theme.value}
+                        type="button"
+                        onClick={() => toggleTheme(theme.value)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+                          formData.favoriteThemes.includes(theme.value)
+                            ? "text-white shadow-sm"
+                            : "bg-surface-alt text-text-muted hover:bg-primary/5"
+                        }`}
+                        style={
+                          formData.favoriteThemes.includes(theme.value)
+                            ? { backgroundColor: theme.color }
+                            : {}
+                        }
+                      >
+                        {theme.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
                 <div className="flex gap-3">
-                  {COMPANIONS.map((comp) => (
-                    <button
-                      key={comp.value}
-                      onClick={() =>
-                        setFormData((p) => ({ ...p, companion: comp.value }))
-                      }
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all cursor-pointer ${
-                        formData.companion === comp.value
-                          ? "bg-primary/10 border-2 border-primary shadow-md"
-                          : "bg-surface-alt border-2 border-transparent hover:border-primary/20"
-                      }`}
-                    >
-                      <span className="text-2xl">{comp.emoji}</span>
-                      <span className="text-xs font-semibold text-text">
-                        {comp.label}
-                      </span>
-                    </button>
-                  ))}
+                  <Button type="submit">
+                    <Check className="w-4 h-4" />
+                    {editingId ? "Save Changes" : "Create Profile"}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={resetForm}>
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </Button>
                 </div>
               </div>
-
-              {/* Favorite Themes */}
-              <div>
-                <label className="block text-sm font-semibold text-text mb-2">
-                  Favorite Themes (optional)
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {THEMES.map((theme) => (
-                    <button
-                      key={theme.value}
-                      onClick={() => toggleTheme(theme.value)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all cursor-pointer ${
-                        formData.favoriteThemes.includes(theme.value)
-                          ? "text-white shadow-sm"
-                          : "bg-surface-alt text-text-muted hover:bg-primary/5"
-                      }`}
-                      style={
-                        formData.favoriteThemes.includes(theme.value)
-                          ? { backgroundColor: theme.color }
-                          : {}
-                      }
-                    >
-                      {theme.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <Button onClick={handleSave}>
-                  <Check className="w-4 h-4" />
-                  {editingId ? "Save Changes" : "Create Profile"}
-                </Button>
-                <Button variant="ghost" onClick={resetForm}>
-                  <X className="w-4 h-4" />
-                  Cancel
-                </Button>
-              </div>
-            </div>
+            </form>
           </Card>
         </motion.div>
       )}
@@ -300,19 +332,48 @@ export default function ProfilesPage() {
                     <button
                       onClick={() => startEdit(profile)}
                       className="p-2 text-text-muted hover:text-primary transition-colors cursor-pointer rounded-lg hover:bg-primary/5"
+                      aria-label={`Edit ${profile.name}'s profile`}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() =>
-                        handleDelete(profile.id, profile.name)
-                      }
+                      onClick={() => setConfirmDeleteId(profile.id)}
                       className="p-2 text-text-muted hover:text-error transition-colors cursor-pointer rounded-lg hover:bg-error/5"
+                      aria-label={`Delete ${profile.name}'s profile`}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
+
+                {/* Inline delete confirmation */}
+                {confirmDeleteId === profile.id && (
+                  <div className="mt-3 pt-3 border-t border-error/20 flex items-center justify-between gap-3">
+                    <p className="text-sm text-text font-semibold">
+                      Remove {profile.name}&apos;s profile?
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => {
+                          removeProfile(profile.id)
+                          toast.success("Profile removed")
+                          setConfirmDeleteId(null)
+                        }}
+                      >
+                        Remove
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setConfirmDeleteId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {profile.favoriteThemes.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-primary/5">
@@ -333,6 +394,32 @@ export default function ProfilesPage() {
                         {THEMES.find((t) => t.value === theme)?.label}
                       </span>
                     ))}
+                  </div>
+                )}
+
+                {(charactersByProfile[profile.id] || []).length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-primary/5">
+                    <p className="text-xs font-semibold text-primary mb-2">
+                      Story Universe
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(charactersByProfile[profile.id] || []).map((char) => (
+                        <span
+                          key={char.id}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent/10 text-accent"
+                          title={char.description}
+                        >
+                          {char.character_name}
+                          <button
+                            onClick={() => removeCharacter(char.id, profile.id)}
+                            className="ml-0.5 hover:text-error transition-colors cursor-pointer"
+                            aria-label={`Remove ${char.character_name}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </Card>

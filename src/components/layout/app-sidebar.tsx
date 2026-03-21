@@ -8,6 +8,7 @@ import {
   Library,
   Users,
   Moon,
+  Settings,
   Mic,
   GraduationCap,
   LogOut,
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/library", label: "My Bookshelf", icon: Library },
   { href: "/profiles", label: "Child Profiles", icon: Users },
   { href: "/bedtime", label: "Bedtime Mode", icon: Moon },
+  { href: "/settings", label: "Settings", icon: Settings },
 ]
 
 const comingSoonItems = [
@@ -38,7 +40,7 @@ export function AppSidebar() {
     <aside className="fixed left-0 top-0 h-full w-64 bg-surface border-r border-primary/10 flex flex-col z-40">
       {/* Logo */}
       <div className="p-6 pb-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <Sparkles className="w-7 h-7 text-primary" />
           <span className="font-heading text-2xl font-bold text-primary">
             PixieTales
@@ -73,6 +75,7 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer",
                 isActive
@@ -95,6 +98,8 @@ export function AppSidebar() {
         {comingSoonItems.map((item) => (
           <div
             key={item.label}
+            aria-disabled="true"
+            title="Coming soon"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-muted/50 cursor-not-allowed"
           >
             <item.icon className="w-5 h-5" />

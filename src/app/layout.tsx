@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Fredoka, Nunito } from "next/font/google"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import "./globals.css"
@@ -17,10 +17,16 @@ const nunito = Nunito({
   display: "swap",
 })
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
+}
+
 export const metadata: Metadata = {
   title: "PixieTales - Magical Bedtime Stories for Kids",
   description:
-    "AI-powered bedtime stories for children ages 1-6. Personalized tales, beautiful illustrations, soothing narration, and calming bedtime routines. No ads, COPPA compliant.",
+    "AI-powered bedtime stories for children ages 1-8. Personalized tales, beautiful illustrations, soothing narration, and calming bedtime routines. No ads, COPPA compliant.",
   keywords: [
     "bedtime stories",
     "kids stories",

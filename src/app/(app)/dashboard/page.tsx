@@ -3,6 +3,7 @@
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { UpgradeBanner } from "@/components/upgrade-banner"
 import Link from "next/link"
 import {
   PlusCircle,
@@ -35,6 +36,10 @@ export default function DashboardPage() {
     ? sortedStories.filter((s) => s.childProfileId === activeProfile.id).slice(0, 3)
     : sortedStories.slice(0, 3)
 
+  const profileStoryCount = activeProfile
+    ? stories.filter((s) => s.childProfileId === activeProfile.id).length
+    : stories.length
+
   // If no profiles, show onboarding
   if (profiles.length === 0) {
     return (
@@ -61,6 +66,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <UpgradeBanner />
       {/* Header */}
       <div>
         <h1 className="font-heading text-3xl font-bold text-text">
@@ -79,11 +85,16 @@ export default function DashboardPage() {
 
       {/* Profile Switcher */}
       {profiles.length > 1 && (
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div
+          role="group"
+          aria-label="Select active profile"
+          className="flex gap-3 overflow-x-auto pb-2"
+        >
           {profiles.map((profile) => (
             <button
               key={profile.id}
               onClick={() => setActiveProfile(profile.id)}
+              aria-pressed={activeProfile?.id === profile.id}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all cursor-pointer whitespace-nowrap ${
                 activeProfile?.id === profile.id
                   ? "border-primary bg-primary/5"
@@ -128,7 +139,7 @@ export default function DashboardPage() {
                   Bookshelf
                 </h3>
                 <p className="text-sm text-text-muted">
-                  {stories.length} stories saved
+                  {profileStoryCount} stories saved
                 </p>
               </div>
             </div>
@@ -157,12 +168,12 @@ export default function DashboardPage() {
         <h2 className="font-heading text-xl font-semibold text-text mb-4">
           Quick Start -- Pick a Theme
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {THEMES.slice(0, 5).map((theme) => (
+        <div className="flex gap-3 overflow-x-auto pb-2 flex-nowrap">
+          {THEMES.map((theme) => (
             <Link
               key={theme.value}
               href={`/create?theme=${theme.value}`}
-              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-primary/10 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
+              className="flex flex-col items-center gap-2 p-4 rounded-xl border border-primary/10 hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group flex-shrink-0 min-w-[96px]"
             >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform"
@@ -170,7 +181,7 @@ export default function DashboardPage() {
               >
                 <Star className="w-6 h-6" style={{ color: theme.color }} />
               </div>
-              <span className="text-sm font-semibold text-text">
+              <span className="text-sm font-semibold text-text text-center">
                 {theme.label}
               </span>
             </Link>

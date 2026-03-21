@@ -37,6 +37,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Plan enforcement
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: family } = await supabaseAdmin
+      .from("families")
+      .select("plan, stories_used_this_month")
+      .eq("user_id", user.id)
+      .single()
+
+    const plan = family?.plan || "free"
+    const used = family?.stories_used_this_month || 0
+
+    if (plan === "free" && used >= 3) {
+      return NextResponse.json(
+        { error: "Free plan limit reached. Upgrade to create unlimited stories.", upgrade: true },
+        { status: 402 }
+      )
+    }
+
     const body = await request.json()
     const {
       childName,
@@ -48,7 +69,8 @@ export async function POST(request: NextRequest) {
       chapterCount = 4,
       generateImages = true,
       language = "en",
-    } = body as StoryGenerationRequest & { generateImages?: boolean }
+      childProfileId,
+    } = body as StoryGenerationRequest & { generateImages?: boolean; childProfileId?: string }
 
     // Input validation
     if (!childName || typeof childName !== "string" || childName.length > 50) {
@@ -115,6 +137,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch recurring characters for story context
+    let recurringCharacters: { character_name: string; description: string }[] = []
+    if (childProfileId) {
+      const { data: characters } = await supabase
+        .from("character_log")
+        .select("character_name, description")
+        .eq("child_profile_id", childProfileId)
+        .order("created_at", { ascending: false })
+        .limit(5)
+
+      if (characters && characters.length > 0) {
+        recurringCharacters = characters
+      }
+    }
+
     // Generate story text
     let story
     if (cleanDrawingBase64) {
@@ -134,7 +171,7 @@ export async function POST(request: NextRequest) {
         companion,
         chapterCount: safeChapterCount,
         language,
-      })
+      }, recurringCharacters)
     }
 
     // Generate images for each chapter (if enabled and image API key available)
@@ -160,6 +197,50 @@ export async function POST(request: NextRequest) {
       )
       story.chapters = chaptersWithImages
     }
+
+    // Extract and save new characters (fire and forget)
+    if (childProfileId && story.chapters.length > 0) {
+      const allText = story.chapters.map((c: StoryChapter) => c.content).join(" ")
+      // Simple proper noun extraction: capitalized words that aren't the child's name
+      // or common words, appearing 2+ times
+      const words = allText.match(/\b[A-Z][a-z]{2,}\b/g) || []
+      const nameCounts = new Map<string, number>()
+      const commonWords = new Set([
+        "The", "And", "But", "When", "Then", "Once", "This", "That", "They",
+        "Their", "There", "With", "From", "Into", "What", "Chapter", "Little",
+        "After", "Before", "Every", "Could", "Would", "Should", "About",
+        "Very", "Just", "Even", "Still", "Over", "Under", "Around",
+      ])
+
+      for (const word of words) {
+        if (word !== childName && !commonWords.has(word)) {
+          nameCounts.set(word, (nameCounts.get(word) || 0) + 1)
+        }
+      }
+
+      const newCharacters = Array.from(nameCounts.entries())
+        .filter(([, count]) => count >= 2)
+        .slice(0, 3)
+        .map(([name]) => ({
+          child_profile_id: childProfileId,
+          character_name: name,
+          description: `A character from "${story.title}"`,
+          appeared_in_story_id: null as string | null,
+        }))
+
+      if (newCharacters.length > 0) {
+        supabase.from("character_log").insert(newCharacters).then(() => {})
+      }
+    }
+
+    // Increment story usage counter
+    await supabaseAdmin
+      .from("families")
+      .upsert({
+        user_id: user.id,
+        stories_used_this_month: used + 1,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" })
 
     return NextResponse.json(story)
   } catch (error) {

@@ -41,7 +41,7 @@ export default function PrivacyPolicyPage() {
           </h2>
           <p>
             PixieTales is designed for use by parents and caregivers with
-            children ages 1-6. We take children&apos;s privacy seriously and comply
+            children ages 1-8. We take children&apos;s privacy seriously and comply
             with the Children&apos;s Online Privacy Protection Act (COPPA).
           </p>
           <ul className="list-disc pl-6 space-y-2">
@@ -57,9 +57,10 @@ export default function PrivacyPolicyPage() {
               analytics that tracks individual users.
             </li>
             <li>
-              <strong>Data stays on your device.</strong> Child profile data
-              and story history are stored locally on your device (browser
-              localStorage). We do not store child data on our servers.
+              <strong>Your data is secure.</strong> Your data is securely stored
+              in our database, protected by row-level security. We use encryption
+              in transit and at rest. You can delete your account and all
+              associated data at any time.
             </li>
             <li>
               <strong>AI story generation.</strong> When you create a story,
@@ -136,8 +137,8 @@ export default function PrivacyPolicyPage() {
               any time.
             </li>
             <li>
-              You can stop using the service at any time. No data is retained
-              on our servers.
+              You can stop using the service and delete your account at any
+              time. All associated data will be permanently removed.
             </li>
             <li>
               For questions or data deletion requests, contact us at

@@ -14,6 +14,7 @@ import {
   Home,
   Loader2,
   Music2,
+  Moon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
@@ -36,6 +37,7 @@ export default function StoryReaderPage({
 
   const narrationVoice = story?.narrationVoice || "en-US-JennyNeural"
   const bedtimeMode = useAppStore((s) => s.bedtimeMode)
+  const setBedtimeMode = useAppStore((s) => s.setBedtimeMode)
   const ambient = useAmbientAudio()
 
   const [currentChapter, setCurrentChapter] = useState(0)
@@ -43,23 +45,33 @@ export default function StoryReaderPage({
   const [isLoading, setIsLoading] = useState(false)
   const [audioProgress, setAudioProgress] = useState(0)
   const [audioDuration, setAudioDuration] = useState(0)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [whisperUIVisible, setWhisperUIVisible] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   // Cache audio URLs per chapter+voice combo in this session
   const audioCache = useRef<Map<string, string>>(new Map())
+  const autoAdvanceTimer = useRef<number | null>(null)
+  const whisperTimer = useRef<number | null>(null)
 
-  // Cleanup audio on unmount
+  // Cleanup audio and timers on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause()
         audioRef.current.src = ""
       }
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current)
+      if (whisperTimer.current) clearTimeout(whisperTimer.current)
     }
   }, [])
 
   // Stop playback when chapter changes
   useEffect(() => {
+    if (autoAdvanceTimer.current) {
+      clearTimeout(autoAdvanceTimer.current)
+      autoAdvanceTimer.current = null
+    }
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.src = ""
@@ -128,7 +140,7 @@ export default function StoryReaderPage({
     if (story?.narrationEnabled !== false) {
       generateAudio(currentChapter).catch(() => {})
     }
-  }, [currentChapter, story?.narrationEnabled])
+  }, [currentChapter, story?.narrationEnabled, generateAudio])
 
   // Auto-start ambient sound when narration starts playing
   useEffect(() => {
@@ -137,6 +149,27 @@ export default function StoryReaderPage({
       ambient.fadeIn(soundId, 0.6, 2000)
     }
   }, [isPlaying]) // eslint-disable-line react-hooks/exhaustive-deps -- trigger on narration play state
+
+  // Update page title when story loads
+  useEffect(() => {
+    if (story) {
+      document.title = `${story.title} | PixieTales`
+    }
+    return () => { document.title = "PixieTales - Magical Bedtime Stories for Kids" }
+  }, [story?.title])
+
+  // Keyboard navigation for chapters
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft" && currentChapter > 0) {
+        setCurrentChapter(p => p - 1)
+      } else if (e.key === "ArrowRight" && currentChapter < (story?.chapters.length || 1) - 1) {
+        setCurrentChapter(p => p + 1)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentChapter, story?.chapters.length])
 
   async function playChapter(chapterIdx: number) {
     setIsLoading(true)
@@ -172,7 +205,7 @@ export default function StoryReaderPage({
         const nextIdx = chapterIdx + 1
         setCurrentChapter(nextIdx)
         // Auto-play next chapter after a brief pause
-        setTimeout(() => playChapter(nextIdx), 500)
+        autoAdvanceTimer.current = window.setTimeout(() => playChapter(nextIdx), 500)
       }
     }
 
@@ -230,12 +263,7 @@ export default function StoryReaderPage({
   }
 
   function handleDelete() {
-    if (confirm("Delete this story? This cannot be undone.")) {
-      stopPlayback()
-      removeStory(story!.id)
-      toast.success("Story deleted")
-      router.push("/library")
-    }
+    setShowDeleteConfirm(true)
   }
 
   function formatTime(seconds: number) {
@@ -283,7 +311,7 @@ export default function StoryReaderPage({
         <button
           onClick={() => {
             stopPlayback()
-            router.push("/library")
+            router.back()
           }}
           className="flex items-center gap-2 text-text-muted hover:text-primary transition-colors cursor-pointer"
         >
@@ -301,6 +329,25 @@ export default function StoryReaderPage({
           </Button>
         </div>
       </div>
+
+      {/* Inline delete confirmation */}
+      {showDeleteConfirm && (
+        <div className="flex items-center justify-center gap-3 mb-4 p-3 rounded-xl bg-error/10 border border-error/20">
+          <p className="text-sm text-error font-semibold">Delete this story?</p>
+          <button
+            onClick={() => { stopPlayback(); removeStory(story.id); toast.success("Story deleted"); router.push("/library") }}
+            className="px-3 py-1 rounded-lg bg-error text-white text-sm font-semibold cursor-pointer"
+          >
+            Yes, delete
+          </button>
+          <button
+            onClick={() => setShowDeleteConfirm(false)}
+            className="px-3 py-1 rounded-lg bg-surface text-text-muted text-sm font-semibold cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Story Title */}
       <motion.div
@@ -407,7 +454,16 @@ export default function StoryReaderPage({
                   step={0.1}
                   value={audioProgress}
                   onChange={handleSeek}
-                  className="w-full h-1 bg-primary/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                  disabled={audioDuration === 0}
+                  className={cn(
+                    "w-full h-1 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary",
+                    audioDuration === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                  )}
+                  style={{
+                    background: audioDuration > 0
+                      ? `linear-gradient(to right, var(--color-primary) ${(audioProgress / audioDuration) * 100}%, var(--color-primary-light) ${(audioProgress / audioDuration) * 100}%)`
+                      : undefined,
+                  }}
                   aria-label="Audio progress"
                 />
               </div>
@@ -455,8 +511,96 @@ export default function StoryReaderPage({
                   <VolumeX className="w-4 h-4" />
                 )}
               </button>
+
+              {/* Whisper Mode button */}
+              <button
+                onClick={() => {
+                  setBedtimeMode(true)
+                  if (!isPlaying && !isLoading) playChapter(currentChapter)
+                }}
+                aria-label="Enter Whisper Mode"
+                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer bg-surface-alt text-text-muted hover:text-primary"
+                title="Whisper Mode"
+              >
+                <Moon className="w-4 h-4" />
+              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Whisper Mode overlay */}
+      {bedtimeMode && (
+        <div
+          className="fixed inset-0 z-50 bg-night-bg/95 flex flex-col items-center justify-center transition-opacity duration-500"
+          onClick={() => {
+            setWhisperUIVisible(true)
+            if (whisperTimer.current) clearTimeout(whisperTimer.current)
+            whisperTimer.current = window.setTimeout(() => setWhisperUIVisible(false), 5000)
+          }}
+        >
+          {whisperUIVisible ? (
+            <div className="w-full max-w-md px-6 space-y-6" onClick={(e) => e.stopPropagation()}>
+              <p className="text-center text-night-text/60 text-sm">Tap outside to dim</p>
+              {/* Chapter info */}
+              <div className="text-center">
+                <p className="text-night-text/40 text-xs uppercase tracking-wider">Chapter {currentChapter + 1}</p>
+                <h3 className="text-night-text font-heading text-xl font-bold">{chapter.title}</h3>
+              </div>
+              {/* Audio controls */}
+              <div className="bg-night-surface rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    onClick={() => currentChapter > 0 && setCurrentChapter(p => p - 1)}
+                    disabled={isFirst}
+                    className="text-night-muted disabled:opacity-30 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={togglePlayback}
+                    disabled={isLoading}
+                    className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-white cursor-pointer"
+                  >
+                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                  </button>
+                  <button
+                    onClick={() => !isLast && setCurrentChapter(p => p + 1)}
+                    disabled={isLast}
+                    className="text-night-muted disabled:opacity-30 cursor-pointer"
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+                {audioDuration > 0 && (
+                  <div className="flex items-center gap-2 text-[10px] text-night-muted">
+                    <span>{formatTime(audioProgress)}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={audioDuration}
+                      step={0.1}
+                      value={audioProgress}
+                      onChange={handleSeek}
+                      className="flex-1 h-1 bg-night-muted/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                    />
+                    <span>{formatTime(audioDuration)}</span>
+                  </div>
+                )}
+              </div>
+              {/* Exit whisper mode */}
+              <button
+                onClick={() => setBedtimeMode(false)}
+                className="block mx-auto text-night-muted text-sm hover:text-night-text cursor-pointer"
+              >
+                Exit Whisper Mode
+              </button>
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="text-night-muted/40 text-sm animate-pulse">Tap anywhere for controls</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -472,20 +616,20 @@ export default function StoryReaderPage({
         </Button>
 
         {/* Chapter dots */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {story.chapters.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentChapter(i)}
               aria-label={`Go to chapter ${i + 1}`}
               aria-current={i === currentChapter ? "true" : undefined}
-              className={cn(
-                "w-3 h-3 rounded-full transition-all cursor-pointer",
-                i === currentChapter
-                  ? "bg-primary scale-125"
-                  : "bg-primary/20 hover:bg-primary/40"
-              )}
-            />
+              className="p-2 cursor-pointer"
+            >
+              <div className={cn(
+                "w-3 h-3 rounded-full transition-all",
+                i === currentChapter ? "bg-primary scale-125" : "bg-primary/20 hover:bg-primary/40"
+              )} />
+            </button>
           ))}
         </div>
 
