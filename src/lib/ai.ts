@@ -118,6 +118,7 @@ Note: imagePrompt must always be in English regardless of story language.`
 
   // Detect truncated responses before attempting JSON parse
   const finishReason = response.choices[0]?.finish_reason
+  console.log(`[generateStory] model=${model} lang=${language} chapters=${chapterCount} finish_reason=${finishReason} content_length=${response.choices[0]?.message?.content?.length ?? 0}`)
   if (finishReason === "length") {
     throw new Error("The story was too long and got cut off. Try fewer chapters or a younger age.")
   }
@@ -175,7 +176,7 @@ function parseStoryJSON(content: string): StoryGenerationResponse {
     return JSON.parse(sanitizeForJSON(content.trim())) as StoryGenerationResponse
   } catch { /* fall through */ }
 
-  console.error("Failed to parse AI response:", content.slice(0, 500))
+  console.error("Failed to parse AI response. Length:", content.length, "Start:", content.slice(0, 300), "End:", content.slice(-200))
   throw new Error("Story format error — please try again.")
 }
 
