@@ -132,18 +132,37 @@ function CreateStoryPage() {
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      const base64 = (ev.target?.result as string)?.split(",")[1]
-      if (base64) {
-        setDrawingMimeType(file.type || "image/jpeg")
-        setDrawingBase64(base64)
-        setDrawingMode(true)
-        setSelectedTheme("custom")
-        setStep("customize")
+    // Client-side magic byte pre-check (defense in depth -- server re-validates with Sharp)
+    const headerReader = new FileReader()
+    headerReader.onload = (hev) => {
+      const arr = new Uint8Array(hev.target?.result as ArrayBuffer)
+      const isJpeg = arr[0] === 0xff && arr[1] === 0xd8 && arr[2] === 0xff
+      const isPng = arr[0] === 0x89 && arr[1] === 0x50 && arr[2] === 0x4e && arr[3] === 0x47
+      const isGif = arr[0] === 0x47 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x38
+      const isWebp = arr[0] === 0x52 && arr[1] === 0x49 && arr[2] === 0x46 && arr[3] === 0x46
+        && arr[8] === 0x57 && arr[9] === 0x45 && arr[10] === 0x42 && arr[11] === 0x50
+      const isBmp = arr[0] === 0x42 && arr[1] === 0x4d
+
+      if (!isJpeg && !isPng && !isGif && !isWebp && !isBmp) {
+        toast.error("Invalid image file. Please upload a JPEG, PNG, GIF, or WebP image.")
+        return
       }
+
+      // Magic bytes look good -- proceed with base64 encoding
+      const base64Reader = new FileReader()
+      base64Reader.onload = (ev) => {
+        const base64 = (ev.target?.result as string)?.split(",")[1]
+        if (base64) {
+          setDrawingMimeType(file.type || "image/jpeg")
+          setDrawingBase64(base64)
+          setDrawingMode(true)
+          setSelectedTheme("custom")
+          setStep("customize")
+        }
+      }
+      base64Reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
+    headerReader.readAsArrayBuffer(file.slice(0, 12))
   }
 
   const handleGenerate = async () => {

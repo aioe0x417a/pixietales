@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateStory, generateStoryFromDrawing, generateImage } from "@/lib/ai"
 import { rateLimit } from "@/lib/rate-limit"
+import { validateAndReencodeImage } from "@/lib/image-validator"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
 const VALID_COMPANIONS = ["bunny", "dragon", "bear", "cat", "unicorn"]
@@ -101,11 +102,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate and re-encode drawing image (strips metadata, payloads, polyglot attacks)
+    let cleanDrawingBase64: string | undefined
+    if (drawingBase64) {
+      try {
+        cleanDrawingBase64 = await validateAndReencodeImage(drawingBase64)
+      } catch (err) {
+        return NextResponse.json(
+          { error: (err as Error).message || "Invalid image file" },
+          { status: 400 }
+        )
+      }
+    }
+
     // Generate story text
     let story
-    if (drawingBase64) {
+    if (cleanDrawingBase64) {
       story = await generateStoryFromDrawing(
-        drawingBase64,
+        cleanDrawingBase64,
         childName,
         childAge,
         companion,
