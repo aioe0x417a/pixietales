@@ -114,7 +114,8 @@ function CreateStoryPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to generate story")
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody.error || `Failed to generate story (${response.status})`)
       }
 
       const story = await response.json()
@@ -135,7 +136,7 @@ function CreateStoryPage() {
         toast.info("Story generation cancelled")
       } else {
         console.error("Generation error:", error)
-        toast.error("Failed to generate story. Please try again.")
+        toast.error((error as Error).message || "Failed to generate story. Please try again.")
       }
       setStep("customize")
       setIsGenerating(false)
