@@ -266,6 +266,30 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: "pixietales-storage",
+      // Strip base64 image data before saving to localStorage (too large, ~5MB limit)
+      // Images are synced to Supabase and restored on login via loadFromSupabase
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name)
+          return str ? JSON.parse(str) : null
+        },
+        setItem: (name, value) => {
+          const clone = JSON.parse(JSON.stringify(value))
+          if (clone?.state?.stories) {
+            for (const story of clone.state.stories) {
+              if (story.chapters) {
+                for (const ch of story.chapters) {
+                  if (ch.imageUrl?.startsWith("data:")) {
+                    ch.imageUrl = undefined
+                  }
+                }
+              }
+            }
+          }
+          localStorage.setItem(name, JSON.stringify(clone))
+        },
+        removeItem: (name) => localStorage.removeItem(name),
+      },
     }
   )
 )
