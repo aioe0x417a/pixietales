@@ -113,22 +113,44 @@ Note: imagePrompt must always be in English regardless of story language.`
       { role: "user", content: userPrompt },
     ],
     temperature: 0.8,
-    max_tokens: 3000,
+    max_tokens: language !== "en" ? 4000 : 3000,
   })
 
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error("No story generated")
 
-  // Extract JSON from response (handle markdown code blocks)
-  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content]
-  const jsonStr = (jsonMatch[1] || content).trim()
+  return parseStoryJSON(content)
+}
 
-  try {
-    const parsed = JSON.parse(jsonStr) as StoryGenerationResponse
-    return parsed
-  } catch {
-    throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
+function parseStoryJSON(content: string): StoryGenerationResponse {
+  // Try multiple extraction strategies
+
+  // 1. Try code fence extraction
+  const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenceMatch?.[1]) {
+    try {
+      return JSON.parse(fenceMatch[1].trim()) as StoryGenerationResponse
+    } catch { /* fall through */ }
   }
+
+  // 2. Try finding outermost { ... } in the content
+  const firstBrace = content.indexOf("{")
+  const lastBrace = content.lastIndexOf("}")
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    const jsonCandidate = content.slice(firstBrace, lastBrace + 1)
+    try {
+      return JSON.parse(jsonCandidate) as StoryGenerationResponse
+    } catch { /* fall through */ }
+  }
+
+  // 3. Try the raw content
+  try {
+    return JSON.parse(content.trim()) as StoryGenerationResponse
+  } catch { /* fall through */ }
+
+  // Log for debugging
+  console.error("Failed to parse AI response:", content.slice(0, 500))
+  throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
 }
 
 export async function generateStoryFromDrawing(
@@ -178,15 +200,7 @@ Note: imagePrompt must always be in English.`,
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error("No story generated")
 
-  // Extract JSON from response (handle markdown code blocks)
-  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content]
-  const jsonStr = (jsonMatch[1] || content).trim()
-
-  try {
-    return JSON.parse(jsonStr) as StoryGenerationResponse
-  } catch {
-    throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
-  }
+  return parseStoryJSON(content)
 }
 
 export async function generateImage(prompt: string): Promise<string> {
