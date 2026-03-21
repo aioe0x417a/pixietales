@@ -2,10 +2,11 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ChildProfile, Story } from "./types"
+import type { ChildProfile, Story, StoryChapter } from "./types"
 import { generateId } from "./utils"
+import { getSupabase } from "./supabase"
 
-interface AppState {
+export interface AppStore {
   // Child Profiles
   profiles: ChildProfile[]
   activeProfileId: string | null
@@ -25,9 +26,90 @@ interface AppState {
   // UI State
   bedtimeMode: boolean
   setBedtimeMode: (on: boolean) => void
+
+  // Supabase sync
+  loadFromSupabase: () => Promise<void>
+  resetStore: () => void
 }
 
-export const useAppStore = create<AppState>()(
+// Fire-and-forget Supabase writes (don't block UI)
+async function syncProfileToSupabase(profile: ChildProfile) {
+  try {
+    const supabase = getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    await supabase.from("child_profiles").upsert({
+      id: profile.id,
+      user_id: user.id,
+      name: profile.name,
+      age: profile.age,
+      companion: profile.companion,
+      favorite_themes: profile.favoriteThemes || [],
+      created_at: profile.createdAt,
+    })
+  } catch (e) {
+    console.warn("Supabase profile sync failed:", e)
+  }
+}
+
+async function deleteProfileFromSupabase(id: string) {
+  try {
+    const supabase = getSupabase()
+    await supabase.from("child_profiles").delete().eq("id", id)
+  } catch (e) {
+    console.warn("Supabase profile delete failed:", e)
+  }
+}
+
+async function syncStoryToSupabase(story: Story) {
+  try {
+    const supabase = getSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    // Insert story
+    await supabase.from("stories").upsert({
+      id: story.id,
+      user_id: user.id,
+      child_profile_id: story.childProfileId,
+      title: story.title,
+      theme: story.theme,
+      child_name: story.childName,
+      prompt: story.prompt || null,
+      created_at: story.createdAt,
+    })
+
+    // Delete existing chapters then insert fresh (avoids duplicate IDs)
+    await supabase.from("story_chapters").delete().eq("story_id", story.id)
+
+    const chapters = story.chapters.map((ch, i) => ({
+      id: generateId(),
+      story_id: story.id,
+      chapter_index: i,
+      title: ch.title,
+      content: ch.content,
+      image_prompt: ch.imagePrompt || null,
+      image_url: ch.imageUrl || null,
+    }))
+
+    await supabase.from("story_chapters").insert(chapters)
+  } catch (e) {
+    console.warn("Supabase story sync failed:", e)
+  }
+}
+
+async function deleteStoryFromSupabase(id: string) {
+  try {
+    const supabase = getSupabase()
+    // Chapters cascade delete via FK
+    await supabase.from("stories").delete().eq("id", id)
+  } catch (e) {
+    console.warn("Supabase story delete failed:", e)
+  }
+}
+
+export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
       // Child Profiles
@@ -36,31 +118,35 @@ export const useAppStore = create<AppState>()(
 
       addProfile: (data) => {
         const id = generateId()
+        const profile = { ...data, id, createdAt: new Date().toISOString() } as ChildProfile
         set((s) => ({
-          profiles: [
-            ...s.profiles,
-            { ...data, id, createdAt: new Date().toISOString() },
-          ],
+          profiles: [...s.profiles, profile],
           activeProfileId: s.activeProfileId ?? id,
         }))
+        syncProfileToSupabase(profile)
         return id
       },
 
-      updateProfile: (id, data) =>
+      updateProfile: (id, data) => {
         set((s) => ({
           profiles: s.profiles.map((p) =>
             p.id === id ? { ...p, ...data } : p
           ),
-        })),
+        }))
+        const updated = get().profiles.find((p) => p.id === id)
+        if (updated) syncProfileToSupabase(updated)
+      },
 
-      removeProfile: (id) =>
+      removeProfile: (id) => {
         set((s) => ({
           profiles: s.profiles.filter((p) => p.id !== id),
           activeProfileId:
             s.activeProfileId === id
               ? s.profiles.find((p) => p.id !== id)?.id ?? null
               : s.activeProfileId,
-        })),
+        }))
+        deleteProfileFromSupabase(id)
+      },
 
       setActiveProfile: (id) => set({ activeProfileId: id }),
 
@@ -74,19 +160,20 @@ export const useAppStore = create<AppState>()(
 
       addStory: (data) => {
         const id = generateId()
+        const story = { ...data, id, createdAt: new Date().toISOString() } as Story
         set((s) => ({
-          stories: [
-            { ...data, id, createdAt: new Date().toISOString() },
-            ...s.stories,
-          ],
+          stories: [story, ...s.stories],
         }))
+        syncStoryToSupabase(story)
         return id
       },
 
-      removeStory: (id) =>
+      removeStory: (id) => {
         set((s) => ({
           stories: s.stories.filter((st) => st.id !== id),
-        })),
+        }))
+        deleteStoryFromSupabase(id)
+      },
 
       getStoriesForProfile: (profileId) =>
         get().stories.filter((s) => s.childProfileId === profileId),
@@ -96,6 +183,86 @@ export const useAppStore = create<AppState>()(
       // UI State
       bedtimeMode: false,
       setBedtimeMode: (on) => set({ bedtimeMode: on }),
+
+      // Reset store on sign-out (clear user data from localStorage)
+      resetStore: () => set({
+        profiles: [],
+        activeProfileId: null,
+        stories: [],
+        bedtimeMode: false,
+      }),
+
+      // Supabase sync: load all data for the logged-in user
+      loadFromSupabase: async () => {
+        try {
+          const supabase = getSupabase()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) return
+
+          // Load profiles
+          const { data: profiles } = await supabase
+            .from("child_profiles")
+            .select("*")
+            .order("created_at", { ascending: true })
+
+          // Load stories with chapters
+          const { data: stories } = await supabase
+            .from("stories")
+            .select("*")
+            .order("created_at", { ascending: false })
+
+          if (stories && stories.length > 0) {
+            const { data: chapters } = await supabase
+              .from("story_chapters")
+              .select("*")
+              .in("story_id", stories.map((s) => s.id))
+              .order("chapter_index", { ascending: true })
+
+            const chaptersByStory = new Map<string, StoryChapter[]>()
+            for (const ch of chapters || []) {
+              const arr = chaptersByStory.get(ch.story_id) || []
+              arr.push({
+                title: ch.title,
+                content: ch.content,
+                imagePrompt: ch.image_prompt || undefined,
+                imageUrl: ch.image_url || undefined,
+              })
+              chaptersByStory.set(ch.story_id, arr)
+            }
+
+            const mappedStories: Story[] = stories.map((s) => ({
+              id: s.id,
+              title: s.title,
+              theme: s.theme,
+              childProfileId: s.child_profile_id,
+              childName: s.child_name,
+              prompt: s.prompt || undefined,
+              chapters: chaptersByStory.get(s.id) || [],
+              createdAt: s.created_at,
+            }))
+
+            set({ stories: mappedStories })
+          }
+
+          if (profiles && profiles.length > 0) {
+            const mappedProfiles: ChildProfile[] = profiles.map((p) => ({
+              id: p.id,
+              name: p.name,
+              age: p.age,
+              companion: p.companion,
+              favoriteThemes: p.favorite_themes || [],
+              createdAt: p.created_at,
+            }))
+
+            set((s) => ({
+              profiles: mappedProfiles,
+              activeProfileId: s.activeProfileId ?? mappedProfiles[0]?.id ?? null,
+            }))
+          }
+        } catch (e) {
+          console.warn("Failed to load from Supabase:", e)
+        }
+      },
     }),
     {
       name: "pixietales-storage",

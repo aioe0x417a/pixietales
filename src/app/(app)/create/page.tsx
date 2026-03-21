@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/input"
 import { useAppStore } from "@/lib/store"
+import { getSupabase } from "@/lib/supabase"
 import { THEMES, COMPANIONS, type Theme, type Companion } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -92,9 +93,13 @@ function CreateStoryPage() {
 
     try {
       abortControllerRef.current = new AbortController()
+      const { data: { session } } = await getSupabase().auth.getSession()
       const response = await fetch("/api/story/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token || ""}`,
+        },
         signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           childName: activeProfile.name,

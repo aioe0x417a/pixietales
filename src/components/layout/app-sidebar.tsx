@@ -11,10 +11,11 @@ import {
   Mic,
   GraduationCap,
   Globe,
-  Settings,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
+import { useAuth } from "@/components/auth/auth-provider"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Sparkles },
@@ -33,6 +34,7 @@ const comingSoonItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const activeProfile = useAppStore((s) => s.getActiveProfile())
+  const { user, signOut } = useAuth()
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-surface border-r border-primary/10 flex flex-col z-40">
@@ -106,11 +108,19 @@ export function AppSidebar() {
         ))}
       </nav>
 
-      {/* Settings */}
-      <div className="p-3 border-t border-primary/10">
-        <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-muted hover:bg-primary/5 hover:text-primary transition-all w-full cursor-pointer">
-          <Settings className="w-5 h-5" />
-          Settings
+      {/* Sign Out */}
+      <div className="p-3 border-t border-primary/10 space-y-1">
+        {user && (
+          <p className="px-4 py-1 text-xs text-text-muted truncate">
+            {user.email}
+          </p>
+        )}
+        <button
+          onClick={signOut}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-muted hover:bg-error/10 hover:text-error transition-all w-full cursor-pointer"
+        >
+          <LogOut className="w-5 h-5" />
+          Sign Out
         </button>
       </div>
     </aside>

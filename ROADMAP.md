@@ -312,6 +312,27 @@ With caching (same story served to multiple users) and a pre-generated library o
 
 ---
 
+## Research Highlights (Top Opportunities)
+
+From the research agent's analysis of 12 competitors:
+
+| Opportunity | Status | Notes |
+|---|---|---|
+| Audio-only "Whisper Mode" | Foundation built | No competitor offers screen-dark narration. Bedtime mode already has the foundation. Highest differentiator. |
+| Parent voice cloning at base tier | Placeholder ready | ElevenLabs costs ~$0.003/1k chars. Technically feasible at $7.99/mo Family tier. |
+| Story Memory/Universe | Foundation built | Persistent child profile that remembers characters across sessions. Zustand + Supabase store already tracks this. |
+| Bilingual stories (SEA) | Not started | Zero competition in Malay, Tamil, Bahasa Indonesia. Massive untapped market. |
+| Evidence-based sleep design | Partially built | 4-4-6 breathing exercise built. Structured wind-down sequence ready. Add sleep tracking + reminders. |
+
+**Priority order for next build sprint:**
+1. Whisper Mode (screen-dark audio-only) -- highest impact, lowest effort
+2. Bilingual stories -- biggest market gap, differentiates from all 12 competitors
+3. Voice cloning -- strongest emotional hook for retention and word-of-mouth
+4. Story Memory -- deepens engagement, makes stories feel personal over time
+5. Sleep design -- completes the bedtime experience, pairs with breathing exercise
+
+---
+
 ## Key Risks
 
 | Risk | Mitigation |

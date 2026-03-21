@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 import { generateStory, generateStoryFromDrawing, generateImage } from "@/lib/ai"
 import { rateLimit } from "@/lib/rate-limit"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
@@ -7,9 +8,23 @@ export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: 10 stories per minute per IP
-    const ip = request.headers.get("x-forwarded-for") || "anonymous"
-    const { allowed } = rateLimit(ip, 10, 60_000)
+    // Auth check: require valid Supabase session
+    const authHeader = request.headers.get("authorization")
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { authorization: authHeader || "" } } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      )
+    }
+
+    // Rate limit: 10 stories per minute per user
+    const { allowed } = rateLimit(user.id, 10, 60_000)
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
@@ -87,8 +102,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate images for each chapter (if enabled and API key available)
-    if (generateImages && process.env.OPENAI_API_KEY) {
+    // Generate images for each chapter (if enabled and image API key available)
+    const hasImageKey =
+      (process.env.IMAGE_MODEL_PROVIDER === "gemini" && process.env.GOOGLE_API_KEY) ||
+      (process.env.IMAGE_MODEL_PROVIDER === "openai" && process.env.OPENAI_API_KEY) ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.OPENAI_API_KEY
+    if (generateImages && hasImageKey) {
       const chaptersWithImages: StoryChapter[] = await Promise.all(
         story.chapters.map(async (chapter) => {
           try {

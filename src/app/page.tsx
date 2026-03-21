@@ -50,9 +50,14 @@ export default function LandingPage() {
               Pricing
             </a>
           </div>
-          <Link href="/dashboard">
-            <Button size="sm">Get Started</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/login">
+              <Button size="sm" variant="outline">Sign In</Button>
+            </Link>
+            <Link href="/signup">
+              <Button size="sm">Get Started Free</Button>
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -123,10 +128,10 @@ export default function LandingPage() {
               variants={fadeUp}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <Link href="/dashboard">
+              <Link href="/signup">
                 <Button size="lg" className="w-full sm:w-auto">
                   <Wand2 className="w-5 h-5" />
-                  Create a Story
+                  Get Started Free
                   <ChevronRight className="w-5 h-5" />
                 </Button>
               </Link>
@@ -464,7 +469,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/dashboard">
+                <Link href="/signup">
                   <Button
                     variant={plan.popular ? "primary" : "outline"}
                     className="w-full"
@@ -500,11 +505,16 @@ export default function LandingPage() {
               Join thousands of families creating magical bedtime moments.
               Start your first story in under a minute.
             </motion.p>
-            <motion.div variants={fadeUp}>
-              <Link href="/dashboard">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/signup">
                 <Button size="lg">
                   <Sparkles className="w-5 h-5" />
-                  Create Your First Story
+                  Get Started Free
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline">
+                  Sign In
                 </Button>
               </Link>
             </motion.div>

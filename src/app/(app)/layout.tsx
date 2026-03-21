@@ -2,10 +2,12 @@
 
 import { AppSidebar } from "@/components/layout/app-sidebar"
 import { MobileNav } from "@/components/layout/mobile-nav"
+import { RequireAuth } from "@/components/auth/require-auth"
 import { Toaster } from "sonner"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
+    <RequireAuth>
     <div className="min-h-screen bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
@@ -32,5 +34,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       />
     </div>
+    </RequireAuth>
   )
 }
