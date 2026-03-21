@@ -149,8 +149,8 @@ function parseStoryJSON(content: string): StoryGenerationResponse {
   } catch { /* fall through */ }
 
   // Log for debugging
-  console.error("Failed to parse AI response:", content.slice(0, 500))
-  throw new Error("Story format error — the AI returned invalid JSON. Please try again.")
+  console.error("Failed to parse AI response:", content.slice(0, 1000))
+  throw new Error(`Story format error — the AI returned invalid JSON. Raw start: ${content.slice(0, 200)}`)
 }
 
 export async function generateStoryFromDrawing(
