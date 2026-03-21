@@ -113,7 +113,7 @@ Note: imagePrompt must always be in English regardless of story language.`
       { role: "user", content: userPrompt },
     ],
     temperature: 0.8,
-    max_tokens: language !== "en" ? 4000 : 3000,
+    max_tokens: language !== "en" ? 8000 : 3000,
   })
 
   const content = response.choices[0]?.message?.content
@@ -148,9 +148,8 @@ function parseStoryJSON(content: string): StoryGenerationResponse {
     return JSON.parse(content.trim()) as StoryGenerationResponse
   } catch { /* fall through */ }
 
-  // Log for debugging
-  console.error("Failed to parse AI response:", content.slice(0, 1000))
-  throw new Error(`Story format error — the AI returned invalid JSON. Raw start: ${content.slice(0, 200)}`)
+  console.error("Failed to parse AI response:", content.slice(0, 500))
+  throw new Error("Story format error — please try again.")
 }
 
 export async function generateStoryFromDrawing(
