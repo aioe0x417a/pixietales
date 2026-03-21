@@ -68,6 +68,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!/^[a-zA-Z0-9_-]+$/.test(storyId)) {
+      return NextResponse.json(
+        { error: "Invalid storyId format" },
+        { status: 400 }
+      )
+    }
+
     if (typeof chapterIndex !== "number" || chapterIndex < 0 || chapterIndex > 10) {
       return NextResponse.json(
         { error: "Invalid chapterIndex" },
@@ -83,12 +90,19 @@ export async function POST(request: NextRequest) {
 
     // Cache check: see if audio already exists in storage
     const storagePath = `${user.id}/${storyId}/${chapterIndex}.mp3`
-    const { data: existing } = await supabaseAdmin.storage
+    const { data: existingFiles } = await supabaseAdmin.storage
       .from("story-audio")
-      .createSignedUrl(storagePath, 60 * 60 * 24 * 7) // 7-day signed URL
+      .list(`${user.id}/${storyId}`)
 
-    if (existing?.signedUrl) {
-      return NextResponse.json({ audioUrl: existing.signedUrl })
+    const fileExists = existingFiles?.some((f) => f.name === `${chapterIndex}.mp3`)
+
+    if (fileExists) {
+      const { data: cachedUrl } = await supabaseAdmin.storage
+        .from("story-audio")
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 7) // 7-day signed URL
+      if (cachedUrl?.signedUrl) {
+        return NextResponse.json({ audioUrl: cachedUrl.signedUrl })
+      }
     }
 
     // Determine prosody from voice category
@@ -111,11 +125,10 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error("Storage upload error:", uploadError)
-      // Fall back to returning base64 inline if upload fails
-      const base64 = audioBuffer.toString("base64")
-      return NextResponse.json({
-        audioUrl: `data:audio/mpeg;base64,${base64}`,
-      })
+      return NextResponse.json(
+        { error: "Audio storage failed. Please try again." },
+        { status: 500 }
+      )
     }
 
     // Get a signed URL for the uploaded file
@@ -131,19 +144,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ audioUrl: publicUrl.publicUrl })
     }
 
-    // Also update the story_chapters table with the audio URL
-    await supabaseAdmin
-      .from("story_chapters")
-      .update({ audio_url: signedUrl.signedUrl })
-      .eq("story_id", storyId)
-      .eq("chapter_index", chapterIndex)
+    // Verify story ownership before updating
+    const { data: storyOwner } = await supabaseAdmin
+      .from("stories")
+      .select("id")
+      .eq("id", storyId)
+      .eq("user_id", user.id)
+      .single()
+
+    if (storyOwner) {
+      // Store raw storage path (not signed URL) so it can be re-signed later
+      await supabaseAdmin
+        .from("story_chapters")
+        .update({ audio_url: storagePath })
+        .eq("story_id", storyId)
+        .eq("chapter_index", chapterIndex)
+    }
 
     return NextResponse.json({ audioUrl: signedUrl.signedUrl })
   } catch (error) {
     console.error("TTS error:", error)
-    const message = error instanceof Error ? error.message : "Failed to generate audio"
     return NextResponse.json(
-      { error: message },
+      { error: "Failed to generate audio. Please try again." },
       { status: 500 }
     )
   }

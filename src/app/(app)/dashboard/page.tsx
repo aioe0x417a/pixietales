@@ -28,11 +28,12 @@ export default function DashboardPage() {
   const stories = useAppStore((s) => s.stories)
   const setActiveProfile = useAppStore((s) => s.setActiveProfile)
 
+  const sortedStories = [...stories].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
   const recentStories = activeProfile
-    ? stories
-        .filter((s) => s.childProfileId === activeProfile.id)
-        .slice(0, 3)
-    : stories.slice(0, 3)
+    ? sortedStories.filter((s) => s.childProfileId === activeProfile.id).slice(0, 3)
+    : sortedStories.slice(0, 3)
 
   // If no profiles, show onboarding
   if (profiles.length === 0) {

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!childAge || typeof childAge !== "number" || childAge < 1 || childAge > 8) {
+    if (!childAge || typeof childAge !== "number" || !Number.isInteger(childAge) || childAge < 1 || childAge > 8) {
       return NextResponse.json(
         { error: "Age must be between 1 and 8" },
         { status: 400 }
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(story)
   } catch (error) {
     console.error("Story generation error:", error)
-    const message = error instanceof Error ? error.message : "Failed to generate story. Please try again."
+    const message = "Failed to generate story. Please try again."
     return NextResponse.json(
       { error: message },
       { status: 500 }

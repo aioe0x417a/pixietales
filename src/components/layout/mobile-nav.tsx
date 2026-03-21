@@ -11,7 +11,7 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: Sparkles },
   { href: "/create", label: "Create", icon: PlusCircle },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/profiles", label: "Profiles", icon: Users },
+  { href: "/bedtime", label: "Bedtime", icon: Moon },
 ]
 
 export function MobileNav() {
@@ -30,17 +30,17 @@ export function MobileNav() {
           />
           <div className="absolute bottom-[calc(4rem+env(safe-area-inset-bottom))] right-3 bg-surface border border-primary/10 rounded-2xl shadow-xl p-3 min-w-[200px] z-50">
             <Link
-              href="/bedtime"
+              href="/profiles"
               onClick={() => setShowMenu(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer",
-                pathname === "/bedtime"
+                pathname === "/profiles"
                   ? "bg-primary/10 text-primary"
                   : "text-text-muted hover:bg-primary/5 hover:text-primary"
               )}
             >
-              <Moon className="w-5 h-5" />
-              Bedtime Mode
+              <Users className="w-5 h-5" />
+              Profiles
             </Link>
             <div className="my-1 border-t border-primary/10" />
             {user && (

@@ -29,6 +29,10 @@ export default function LibraryPage() {
     )
     .filter((s) => (filterTheme ? s.theme === filterTheme : true))
 
+  const profileStories = stories.filter((s) =>
+    activeProfile ? s.childProfileId === activeProfile.id : true
+  )
+
   const handleDelete = (id: string, title: string) => {
     if (confirm(`Delete "${title}"?`)) {
       removeStory(id)
@@ -68,7 +72,7 @@ export default function LibraryPage() {
           >
             All
           </Button>
-          {THEMES.slice(0, 5).map((theme) => (
+          {THEMES.map((theme) => (
             <Button
               key={theme.value}
               variant={filterTheme === theme.value ? "primary" : "ghost"}
@@ -90,16 +94,16 @@ export default function LibraryPage() {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <BookOpen className="w-16 h-16 text-primary/20 mb-6" />
           <h2 className="font-heading text-xl font-semibold text-text mb-2">
-            {stories.length === 0
+            {profileStories.length === 0
               ? "No stories yet"
               : "No stories match your search"}
           </h2>
           <p className="text-text-muted mb-6">
-            {stories.length === 0
+            {profileStories.length === 0
               ? "Create your first magical story!"
               : "Try a different search or filter"}
           </p>
-          {stories.length === 0 && (
+          {profileStories.length === 0 && (
             <Link href="/create">
               <Button>Create a Story</Button>
             </Link>

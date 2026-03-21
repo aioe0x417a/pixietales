@@ -82,7 +82,7 @@ async function syncStoryToSupabase(story: Story) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Insert story
+    // Upsert story
     await supabase.from("stories").upsert({
       id: story.id,
       user_id: user.id,
@@ -95,8 +95,12 @@ async function syncStoryToSupabase(story: Story) {
       created_at: story.createdAt,
     })
 
-    // Delete existing chapters then insert fresh (avoids duplicate IDs)
-    await supabase.from("story_chapters").delete().eq("story_id", story.id)
+    // Sync chapters: delete then insert, but verify insert succeeds
+    const { error: deleteError } = await supabase.from("story_chapters").delete().eq("story_id", story.id)
+    if (deleteError) {
+      console.warn("Failed to delete old chapters:", deleteError)
+      return // Don't proceed if delete failed -- chapters still intact
+    }
 
     const chapters = story.chapters.map((ch, i) => ({
       id: generateId(),
@@ -109,7 +113,11 @@ async function syncStoryToSupabase(story: Story) {
       audio_url: ch.audioUrl || null,
     }))
 
-    await supabase.from("story_chapters").insert(chapters)
+    const { error: insertError } = await supabase.from("story_chapters").insert(chapters)
+    if (insertError) {
+      console.error("CRITICAL: Chapter insert failed after delete. Story chapters may be lost in DB:", story.id, insertError)
+      // The local store still has the chapters, so data is preserved client-side
+    }
   } catch (e) {
     console.warn("Supabase story sync failed:", e)
   }
@@ -257,42 +265,51 @@ export const useAppStore = create<AppStore>()(
             .select("*")
             .order("created_at", { ascending: false })
 
-          if (stories && stories.length > 0) {
-            const { data: chapters } = await supabase
-              .from("story_chapters")
-              .select("*")
-              .in("story_id", stories.map((s) => s.id))
-              .order("chapter_index", { ascending: true })
+          if (stories) {
+            let mappedStories: Story[] = []
 
-            const chaptersByStory = new Map<string, StoryChapter[]>()
-            for (const ch of chapters || []) {
-              const arr = chaptersByStory.get(ch.story_id) || []
-              arr.push({
-                title: ch.title,
-                content: ch.content,
-                imagePrompt: ch.image_prompt || undefined,
-                imageUrl: ch.image_url || undefined,
-                audioUrl: ch.audio_url || undefined,
-              })
-              chaptersByStory.set(ch.story_id, arr)
+            if (stories.length > 0) {
+              const { data: chapters } = await supabase
+                .from("story_chapters")
+                .select("*")
+                .in("story_id", stories.map((s) => s.id))
+                .order("chapter_index", { ascending: true })
+
+              const chaptersByStory = new Map<string, StoryChapter[]>()
+              for (const ch of chapters || []) {
+                const arr = chaptersByStory.get(ch.story_id) || []
+                arr.push({
+                  title: ch.title,
+                  content: ch.content,
+                  imagePrompt: ch.image_prompt || undefined,
+                  imageUrl: ch.image_url || undefined,
+                  audioUrl: ch.audio_url || undefined,
+                })
+                chaptersByStory.set(ch.story_id, arr)
+              }
+
+              mappedStories = stories.map((s) => ({
+                id: s.id,
+                title: s.title,
+                theme: s.theme,
+                childProfileId: s.child_profile_id,
+                childName: s.child_name,
+                prompt: s.prompt || undefined,
+                language: s.language || "en",
+                chapters: chaptersByStory.get(s.id) || [],
+                createdAt: s.created_at,
+              }))
             }
 
-            const mappedStories: Story[] = stories.map((s) => ({
-              id: s.id,
-              title: s.title,
-              theme: s.theme,
-              childProfileId: s.child_profile_id,
-              childName: s.child_name,
-              prompt: s.prompt || undefined,
-              language: s.language || "en",
-              chapters: chaptersByStory.get(s.id) || [],
-              createdAt: s.created_at,
-            }))
-
-            set({ stories: mappedStories })
+            // Merge: keep local-only stories that aren't in the remote set
+            set((s) => {
+              const remoteIds = new Set(mappedStories.map((st) => st.id))
+              const localOnly = s.stories.filter((st) => !remoteIds.has(st.id))
+              return { stories: [...localOnly, ...mappedStories] }
+            })
           }
 
-          if (profiles && profiles.length > 0) {
+          if (profiles) {
             const mappedProfiles: ChildProfile[] = profiles.map((p) => ({
               id: p.id,
               name: p.name,
@@ -302,10 +319,15 @@ export const useAppStore = create<AppStore>()(
               createdAt: p.created_at,
             }))
 
-            set((s) => ({
-              profiles: mappedProfiles,
-              activeProfileId: s.activeProfileId ?? mappedProfiles[0]?.id ?? null,
-            }))
+            // Merge: keep local-only profiles that aren't in the remote set
+            set((s) => {
+              const remoteIds = new Set(mappedProfiles.map((p) => p.id))
+              const localOnly = s.profiles.filter((p) => !remoteIds.has(p.id))
+              return {
+                profiles: [...localOnly, ...mappedProfiles],
+                activeProfileId: s.activeProfileId ?? mappedProfiles[0]?.id ?? null,
+              }
+            })
           }
         } catch (e) {
           console.warn("Failed to load from Supabase:", e)

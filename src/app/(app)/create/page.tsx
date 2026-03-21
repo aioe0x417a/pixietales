@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Sparkles,
   Wand2,
-  Upload,
   ArrowLeft,
   ArrowRight,
   Loader2,
@@ -58,6 +57,7 @@ function CreateStoryPage() {
   const [selectedVoice, setSelectedVoice] = useState(getDefaultVoice("en"))
   const [drawingMode, setDrawingMode] = useState(false)
   const [drawingBase64, setDrawingBase64] = useState<string | null>(null)
+  const [drawingMimeType, setDrawingMimeType] = useState<string>("image/jpeg")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -108,6 +108,8 @@ function CreateStoryPage() {
     if (filtered.length > 0) {
       setSelectedAge(filtered[0].age)
       setSelectedVoice(filtered[0].value)
+    } else {
+      setSelectedVoice("")
     }
   }
 
@@ -116,6 +118,8 @@ function CreateStoryPage() {
     const filtered = voicesForLang.filter((v) => v.gender === selectedGender && v.age === age)
     if (filtered.length > 0) {
       setSelectedVoice(filtered[0].value)
+    } else {
+      setSelectedVoice("")
     }
   }
 
@@ -123,10 +127,16 @@ function CreateStoryPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image too large. Maximum 5MB.")
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (ev) => {
       const base64 = (ev.target?.result as string)?.split(",")[1]
       if (base64) {
+        setDrawingMimeType(file.type || "image/jpeg")
         setDrawingBase64(base64)
         setDrawingMode(true)
         setSelectedTheme("custom")
@@ -139,6 +149,11 @@ function CreateStoryPage() {
   const handleGenerate = async () => {
     if (!selectedTheme && !drawingBase64) {
       toast.error("Please select a theme or upload a drawing")
+      return
+    }
+
+    if (narrationEnabled && (!selectedVoice || !NARRATION_VOICES.some((v) => v.value === selectedVoice))) {
+      toast.error("Please select a valid narration voice")
       return
     }
 
@@ -295,6 +310,7 @@ function CreateStoryPage() {
             <button
               onClick={() => {
                 setStep("theme")
+                setSelectedTheme(null)
                 setDrawingBase64(null)
                 setDrawingMode(false)
               }}
@@ -489,7 +505,7 @@ function CreateStoryPage() {
               {drawingBase64 && (
                 <div className="rounded-xl overflow-hidden border border-primary/10">
                   <img
-                    src={`data:image/jpeg;base64,${drawingBase64}`}
+                    src={`data:${drawingMimeType};base64,${drawingBase64}`}
                     alt="Uploaded drawing"
                     className="w-full max-h-64 object-contain bg-white"
                   />

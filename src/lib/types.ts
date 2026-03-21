@@ -132,6 +132,10 @@ export function getDefaultVoice(lang: StoryLanguage): string {
   return storyteller?.value || voices[0]?.value || "en-US-JennyNeural"
 }
 
+export function isValidVoice(voice: string): boolean {
+  return NARRATION_VOICES.some((v) => v.value === voice)
+}
+
 export interface Story {
   id: string
   title: string
@@ -151,7 +155,7 @@ export interface Story {
 export interface StoryGenerationRequest {
   childName: string
   childAge: number
-  theme: Theme | "custom"
+  theme: Theme | "custom" | "drawing"
   customPrompt?: string
   companion: Companion
   drawingBase64?: string
