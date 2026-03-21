@@ -32,6 +32,32 @@ function getStoryModelId() {
   return process.env.STORY_MODEL_ID || "anthropic/claude-haiku-4.5"
 }
 
+const STORY_JSON_SCHEMA = {
+  name: "story",
+  strict: true,
+  schema: {
+    type: "object" as const,
+    additionalProperties: false,
+    required: ["title", "chapters"],
+    properties: {
+      title: { type: "string" as const },
+      chapters: {
+        type: "array" as const,
+        items: {
+          type: "object" as const,
+          additionalProperties: false,
+          required: ["title", "content", "imagePrompt"],
+          properties: {
+            title: { type: "string" as const },
+            content: { type: "string" as const },
+            imagePrompt: { type: "string" as const },
+          },
+        },
+      },
+    },
+  },
+}
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
   ms: "Bahasa Melayu (Malay)",
@@ -87,24 +113,13 @@ Rules:
 - End with ${childName} feeling safe, happy, and sleepy
 - No scary elements, violence, or anything anxiety-inducing
 - Weave in gentle moral lessons naturally${langInstruction}
-
-Return ONLY valid JSON in this exact format:
-{
-  "title": "Story Title",
-  "chapters": [
-    {
-      "title": "Chapter Title",
-      "content": "Chapter content here...",
-      "imagePrompt": "A soft watercolor illustration of [scene description], children's storybook style, warm gentle colors, dreamy atmosphere"
-    }
-  ]
-}
-
-Note: imagePrompt must always be in English regardless of story language.`
+- imagePrompt must always be in English regardless of story language, describing a soft watercolor children's book illustration of the scene`
 
   const userPrompt = `Create a bedtime story about ${themeDescriptions[theme] || "a magical adventure"} with ${chapterCount} chapters for ${childName} (age ${childAge}).${
     customPrompt ? `\n\nSpecific request: ${customPrompt}` : ""
   }${language !== "en" ? `\n\nWrite the story in ${langName}.` : ""}`
+
+  const useOpenRouter = process.env.STORY_MODEL_PROVIDER === "openrouter"
 
   const response = await client.chat.completions.create({
     model,
@@ -114,7 +129,9 @@ Note: imagePrompt must always be in English regardless of story language.`
     ],
     temperature: 0.8,
     max_tokens: language !== "en" ? 8000 : 6000,
-  })
+    response_format: { type: "json_schema", json_schema: STORY_JSON_SCHEMA } as never,
+    ...(useOpenRouter ? { plugins: [{ id: "response-healing" }] } as never : {}),
+  } as never)
 
   // Detect truncated responses before attempting JSON parse
   const finishReason = response.choices[0]?.finish_reason
@@ -206,6 +223,8 @@ export async function generateStoryFromDrawing(
     ? `\n- Write the ENTIRE story in ${langName}`
     : ""
 
+  const useOpenRouter = process.env.STORY_MODEL_PROVIDER === "openrouter"
+
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -218,9 +237,7 @@ Rules:
 - Include their companion: ${companion}
 - Make it a gentle bedtime story
 - End peacefully${langInstruction}
-
-Return ONLY valid JSON: { "title": "...", "chapters": [{ "title": "...", "content": "...", "imagePrompt": "A soft watercolor illustration of [scene], children's storybook style" }] }
-Note: imagePrompt must always be in English.`,
+- imagePrompt must always be in English, describing a soft watercolor children's book illustration of the scene`,
       },
       {
         role: "user",
@@ -231,8 +248,10 @@ Note: imagePrompt must always be in English.`,
       },
     ],
     temperature: 0.8,
-    max_tokens: 3000,
-  })
+    max_tokens: language !== "en" ? 8000 : 6000,
+    response_format: { type: "json_schema", json_schema: STORY_JSON_SCHEMA } as never,
+    ...(useOpenRouter ? { plugins: [{ id: "response-healing" }] } as never : {}),
+  } as never)
 
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error("No story generated")
