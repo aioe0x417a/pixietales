@@ -130,15 +130,26 @@ Note: imagePrompt must always be in English regardless of story language.`
 }
 
 function sanitizeForJSON(str: string): string {
-  // Replace literal control characters (unescaped newlines, tabs, etc.) that
-  // LLMs sometimes embed inside JSON string values, making JSON.parse throw
-  // "Bad control character in string literal".
-  return str.replace(/[\x00-\x1f]/g, (c) => {
-    if (c === "\n") return "\\n"
-    if (c === "\r") return "\\r"
-    if (c === "\t") return "\\t"
-    return ""
-  })
+  // Walk the string, track whether we're inside a JSON string value,
+  // and only escape control characters when inside a string.
+  // Structural whitespace (between fields) is left untouched.
+  let result = ""
+  let inString = false
+  let escaped = false
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i]
+    if (escaped) { result += ch; escaped = false; continue }
+    if (ch === "\\" && inString) { result += ch; escaped = true; continue }
+    if (ch === '"') { inString = !inString; result += ch; continue }
+    if (inString && ch.charCodeAt(0) < 0x20) {
+      if (ch === "\n") { result += "\\n"; continue }
+      if (ch === "\r") { result += "\\r"; continue }
+      if (ch === "\t") { result += "\\t"; continue }
+      continue // skip other control chars
+    }
+    result += ch
+  }
+  return result
 }
 
 function parseStoryJSON(content: string): StoryGenerationResponse {
