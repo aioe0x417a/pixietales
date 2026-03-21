@@ -29,7 +29,7 @@ function getStoryClient() {
 }
 
 function getStoryModelId() {
-  return process.env.STORY_MODEL_ID || "anthropic/claude-3.5-haiku"
+  return process.env.STORY_MODEL_ID || "anthropic/claude-haiku-4.5"
 }
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -113,8 +113,14 @@ Note: imagePrompt must always be in English regardless of story language.`
       { role: "user", content: userPrompt },
     ],
     temperature: 0.8,
-    max_tokens: language !== "en" ? 8000 : 3000,
+    max_tokens: language !== "en" ? 8000 : 6000,
   })
+
+  // Detect truncated responses before attempting JSON parse
+  const finishReason = response.choices[0]?.finish_reason
+  if (finishReason === "length") {
+    throw new Error("The story was too long and got cut off. Try fewer chapters or a younger age.")
+  }
 
   const content = response.choices[0]?.message?.content
   if (!content) throw new Error("No story generated")
@@ -122,14 +128,29 @@ Note: imagePrompt must always be in English regardless of story language.`
   return parseStoryJSON(content)
 }
 
+function sanitizeForJSON(str: string): string {
+  // Replace literal control characters (unescaped newlines, tabs, etc.) that
+  // LLMs sometimes embed inside JSON string values, making JSON.parse throw
+  // "Bad control character in string literal".
+  return str.replace(/[\x00-\x1f]/g, (c) => {
+    if (c === "\n") return "\\n"
+    if (c === "\r") return "\\r"
+    if (c === "\t") return "\\t"
+    return ""
+  })
+}
+
 function parseStoryJSON(content: string): StoryGenerationResponse {
-  // Try multiple extraction strategies
+  // Try multiple extraction strategies, with and without control-char sanitization
 
   // 1. Try code fence extraction
   const fenceMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenceMatch?.[1]) {
     try {
       return JSON.parse(fenceMatch[1].trim()) as StoryGenerationResponse
+    } catch { /* fall through */ }
+    try {
+      return JSON.parse(sanitizeForJSON(fenceMatch[1].trim())) as StoryGenerationResponse
     } catch { /* fall through */ }
   }
 
@@ -141,11 +162,17 @@ function parseStoryJSON(content: string): StoryGenerationResponse {
     try {
       return JSON.parse(jsonCandidate) as StoryGenerationResponse
     } catch { /* fall through */ }
+    try {
+      return JSON.parse(sanitizeForJSON(jsonCandidate)) as StoryGenerationResponse
+    } catch { /* fall through */ }
   }
 
   // 3. Try the raw content
   try {
     return JSON.parse(content.trim()) as StoryGenerationResponse
+  } catch { /* fall through */ }
+  try {
+    return JSON.parse(sanitizeForJSON(content.trim())) as StoryGenerationResponse
   } catch { /* fall through */ }
 
   console.error("Failed to parse AI response:", content.slice(0, 500))
