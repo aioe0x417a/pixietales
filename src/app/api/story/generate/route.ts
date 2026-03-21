@@ -13,12 +13,12 @@ export async function POST(request: NextRequest) {
   try {
     // Auth check: require valid Supabase session
     const authHeader = request.headers.get("authorization")
+    const token = authHeader?.replace("Bearer ", "") || ""
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { authorization: authHeader || "" } } }
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser(token)
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required" },
