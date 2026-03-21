@@ -134,7 +134,7 @@ export default function StoryReaderPage({
   useEffect(() => {
     if (isPlaying && !ambient.isPlaying && story?.theme) {
       const soundId = getSoundForTheme(story.theme)
-      ambient.fadeIn(soundId, 0.4, 2000)
+      ambient.fadeIn(soundId, 0.6, 2000)
     }
   }, [isPlaying]) // eslint-disable-line react-hooks/exhaustive-deps -- trigger on narration play state
 
@@ -430,7 +430,7 @@ export default function StoryReaderPage({
                     ambient.fadeOut(800)
                   } else {
                     const soundId = getSoundForTheme(story.theme)
-                    ambient.fadeIn(soundId, 0.4, 800)
+                    ambient.fadeIn(soundId, 0.6, 800)
                   }
                 }}
                 aria-label={ambient.isPlaying
