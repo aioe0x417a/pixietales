@@ -6,6 +6,7 @@ import type { ChildProfile, Story, StoryChapter, NarrationVoice, StoryLanguage }
 import type { AmbientSoundId } from "./ambient-sounds"
 import { generateId } from "./utils"
 import { getSupabase } from "./supabase"
+import { enqueue, processQueue, initSyncQueue } from "./sync-queue"
 
 export interface AppStore {
   // Child Profiles
@@ -46,34 +47,24 @@ export interface AppStore {
   resetStore: () => void
 }
 
-// Fire-and-forget Supabase writes (don't block UI)
+// Resolve the current user's ID once, then hand off to the sync queue.
+// These functions are still fire-and-forget from the caller's perspective,
+// but failures are now persisted and retried via sync-queue.
 async function syncProfileToSupabase(profile: ChildProfile) {
   try {
     const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
-    await supabase.from("child_profiles").upsert({
-      id: profile.id,
-      user_id: user.id,
-      name: profile.name,
-      age: profile.age,
-      companion: profile.companion,
-      favorite_themes: profile.favoriteThemes || [],
-      created_at: profile.createdAt,
-    })
+    enqueue("upsert-profile", { ...profile, userId: user.id })
+    processQueue()
   } catch (e) {
-    console.warn("Supabase profile sync failed:", e)
+    console.warn("syncProfileToSupabase: could not resolve user", e)
   }
 }
 
 async function deleteProfileFromSupabase(id: string) {
-  try {
-    const supabase = getSupabase()
-    await supabase.from("child_profiles").delete().eq("id", id)
-  } catch (e) {
-    console.warn("Supabase profile delete failed:", e)
-  }
+  enqueue("delete-profile", { id })
+  processQueue()
 }
 
 async function syncStoryToSupabase(story: Story) {
@@ -81,56 +72,21 @@ async function syncStoryToSupabase(story: Story) {
     const supabase = getSupabase()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
-    // Upsert story
-    await supabase.from("stories").upsert({
-      id: story.id,
-      user_id: user.id,
-      child_profile_id: story.childProfileId,
-      title: story.title,
-      theme: story.theme,
-      child_name: story.childName,
-      prompt: story.prompt || null,
-      language: story.language || "en",
-      created_at: story.createdAt,
-    })
-
-    // Sync chapters: delete then insert, but verify insert succeeds
-    const { error: deleteError } = await supabase.from("story_chapters").delete().eq("story_id", story.id)
-    if (deleteError) {
-      console.warn("Failed to delete old chapters:", deleteError)
-      return // Don't proceed if delete failed -- chapters still intact
-    }
-
-    const chapters = story.chapters.map((ch, i) => ({
-      id: generateId(),
-      story_id: story.id,
-      chapter_index: i,
-      title: ch.title,
-      content: ch.content,
-      image_prompt: ch.imagePrompt || null,
-      image_url: ch.imageUrl || null,
-      audio_url: ch.audioUrl || null,
-    }))
-
-    const { error: insertError } = await supabase.from("story_chapters").insert(chapters)
-    if (insertError) {
-      console.error("CRITICAL: Chapter insert failed after delete. Story chapters may be lost in DB:", story.id, insertError)
-      // The local store still has the chapters, so data is preserved client-side
-    }
+    enqueue("upsert-story", { ...story, userId: user.id })
+    processQueue()
   } catch (e) {
-    console.warn("Supabase story sync failed:", e)
+    console.warn("syncStoryToSupabase: could not resolve user", e)
   }
 }
 
 async function deleteStoryFromSupabase(id: string) {
-  try {
-    const supabase = getSupabase()
-    // Chapters cascade delete via FK
-    await supabase.from("stories").delete().eq("id", id)
-  } catch (e) {
-    console.warn("Supabase story delete failed:", e)
-  }
+  enqueue("delete-story", { id })
+  processQueue()
+}
+
+// Initialise the sync queue once (no-op if called again)
+if (typeof window !== "undefined") {
+  initSyncQueue()
 }
 
 export const useAppStore = create<AppStore>()(

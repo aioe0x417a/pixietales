@@ -25,16 +25,19 @@ import {
   Shield,
   Leaf,
   X,
+  Lock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/input"
 import { useAppStore } from "@/lib/store"
 import { getSupabase } from "@/lib/supabase"
 import {
-  THEMES, COMPANIONS, STORY_LANGUAGES, NARRATION_VOICES, VOICE_AGE_LABELS,
+  THEMES, COMPANIONS, BASE_COMPANIONS, COLLECTIBLE_COMPANIONS,
+  STORY_LANGUAGES, NARRATION_VOICES, VOICE_AGE_LABELS,
   getVoicesForLanguage, getDefaultVoice,
   type Theme, type Companion, type StoryLanguage, type VoiceAge,
 } from "@/lib/types"
+import { getGamificationState } from "@/lib/gamification"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -103,6 +106,10 @@ function CreateStoryPage() {
   const [drawingPreview, setDrawingPreview] = useState<string | null>(null)
   const [drawingMimeType, setDrawingMimeType] = useState<string>("image/jpeg")
   const [generationStep, setGenerationStep] = useState(0)
+  const [selectedCompanion, setSelectedCompanion] = useState<Companion>(
+    activeProfile?.companion || "bunny"
+  )
+  const [unlockedCompanionIds, setUnlockedCompanionIds] = useState<Set<Companion>>(new Set())
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -130,6 +137,18 @@ function CreateStoryPage() {
     window.addEventListener("beforeunload", handleBeforeUnload)
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [isGenerating])
+
+  // Fetch unlocked companions for the active profile
+  useEffect(() => {
+    if (!activeProfile) return
+    getGamificationState(activeProfile.id)
+      .then(({ unlockedCompanions }) => {
+        setUnlockedCompanionIds(
+          new Set(unlockedCompanions.map((u) => u.companionId))
+        )
+      })
+      .catch(console.error)
+  }, [activeProfile?.id])
 
   if (!activeProfile) {
     return (
@@ -267,7 +286,7 @@ function CreateStoryPage() {
           childAge: activeProfile.age,
           theme: selectedTheme || "adventure",
           customPrompt: customPrompt || undefined,
-          companion: activeProfile.companion,
+          companion: selectedCompanion,
           drawingBase64: drawingBase64 || undefined,
           chapterCount,
           generateImages: true,
@@ -484,6 +503,79 @@ function CreateStoryPage() {
                 </div>
               </div>
 
+              {/* Companion selector */}
+              <div>
+                <label className="block text-sm font-semibold text-text mb-2">
+                  Story Companion
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {BASE_COMPANIONS.map((companion) => (
+                    <button
+                      key={companion.value}
+                      onClick={() => setSelectedCompanion(companion.value)}
+                      className={cn(
+                        "flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all cursor-pointer",
+                        selectedCompanion === companion.value
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-primary/10 hover:border-primary/30"
+                      )}
+                      aria-label={companion.label}
+                    >
+                      <span className="text-2xl">{companion.emoji}</span>
+                      <span className="text-[10px] font-semibold text-text truncate w-full text-center">
+                        {companion.label}
+                      </span>
+                    </button>
+                  ))}
+                  {COLLECTIBLE_COMPANIONS.map((companion) => {
+                    const isUnlocked = unlockedCompanionIds.has(companion.value)
+                    return (
+                      <button
+                        key={companion.value}
+                        onClick={() => isUnlocked && setSelectedCompanion(companion.value)}
+                        disabled={!isUnlocked}
+                        title={
+                          isUnlocked
+                            ? companion.label
+                            : `Read ${companion.unlockThreshold} more stories to unlock`
+                        }
+                        className={cn(
+                          "flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all relative",
+                          isUnlocked
+                            ? cn(
+                                "cursor-pointer",
+                                selectedCompanion === companion.value
+                                  ? "border-secondary bg-secondary/5 shadow-md"
+                                  : "border-primary/10 hover:border-primary/30"
+                              )
+                            : "cursor-not-allowed border-primary/5 opacity-50"
+                        )}
+                        aria-label={
+                          isUnlocked
+                            ? companion.label
+                            : `${companion.label} — locked`
+                        }
+                      >
+                        <span
+                          className={cn(
+                            "text-2xl",
+                            !isUnlocked && "grayscale"
+                          )}
+                        >
+                          {companion.emoji}
+                        </span>
+                        <span className="text-[10px] font-semibold text-text-muted truncate w-full text-center">
+                          {companion.label}
+                        </span>
+                        {!isUnlocked && (
+                          <Lock className="absolute top-1.5 right-1.5 w-2.5 h-2.5 text-text-muted/60" />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Narration toggle + voice selector */}
               <div className="p-4 rounded-xl border border-primary/10 space-y-4">
                 <div className="flex items-center justify-between">
@@ -657,12 +749,8 @@ function CreateStoryPage() {
                   <div>
                     <span className="text-text-muted">Companion:</span>{" "}
                     <span className="font-semibold">
-                      {COMPANIONS.find(
-                        (c) => c.value === activeProfile.companion
-                      )?.emoji}{" "}
-                      {COMPANIONS.find(
-                        (c) => c.value === activeProfile.companion
-                      )?.label}
+                      {COMPANIONS.find((c) => c.value === selectedCompanion)?.emoji}{" "}
+                      {COMPANIONS.find((c) => c.value === selectedCompanion)?.label}
                     </span>
                   </div>
                   <div>

@@ -23,6 +23,11 @@ import { cn } from "@/lib/utils"
 import { useAmbientAudio } from "@/components/audio/ambient-audio-provider"
 import { getSoundForTheme, AMBIENT_SOUNDS } from "@/lib/ambient-sounds"
 import { toast } from "sonner"
+import { CelebrationAnimation } from "@/components/gamification/celebration-animation"
+import { StampEarnedModal } from "@/components/gamification/stamp-earned-modal"
+import { CompanionUnlockModal } from "@/components/gamification/companion-unlock-modal"
+import { onStoryComplete } from "@/lib/gamification"
+import type { StoryCompleteResult } from "@/lib/types"
 
 export default function StoryReaderPage({
   params,
@@ -47,6 +52,10 @@ export default function StoryReaderPage({
   const [audioDuration, setAudioDuration] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [whisperUIVisible, setWhisperUIVisible] = useState(false)
+  const [showCelebration, setShowCelebration] = useState(false)
+  const [showStampModal, setShowStampModal] = useState(false)
+  const [showCompanionModal, setShowCompanionModal] = useState(false)
+  const [completionResult, setCompletionResult] = useState<StoryCompleteResult | null>(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   // Cache audio URLs per chapter+voice combo in this session
@@ -270,6 +279,38 @@ export default function StoryReaderPage({
     const m = Math.floor(seconds / 60)
     const s = Math.floor(seconds % 60)
     return `${m}:${s.toString().padStart(2, "0")}`
+  }
+
+  const handleFinishStory = async () => {
+    stopPlayback()
+    const result = await onStoryComplete(story!.childProfileId, story!.id)
+    setCompletionResult(result)
+    setShowCelebration(true)
+  }
+
+  const handleCelebrationComplete = () => {
+    setShowCelebration(false)
+    if (completionResult?.stampAwarded) {
+      setShowStampModal(true)
+    } else if (completionResult?.companionUnlocked) {
+      setShowCompanionModal(true)
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
+  const handleStampModalClose = () => {
+    setShowStampModal(false)
+    if (completionResult?.companionUnlocked) {
+      setShowCompanionModal(true)
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
+  const handleCompanionModalClose = () => {
+    setShowCompanionModal(false)
+    router.push("/dashboard")
   }
 
   if (!story) {
@@ -634,10 +675,7 @@ export default function StoryReaderPage({
         </div>
 
         {isLast ? (
-          <Button onClick={() => {
-            stopPlayback()
-            router.push("/dashboard")
-          }}>
+          <Button onClick={handleFinishStory}>
             <Home className="w-4 h-4" />
             Finish
           </Button>
@@ -650,6 +688,17 @@ export default function StoryReaderPage({
           </Button>
         )}
       </div>
+
+      {/* Gamification overlays */}
+      {showCelebration && (
+        <CelebrationAnimation onComplete={handleCelebrationComplete} />
+      )}
+      <StampEarnedModal visible={showStampModal} onClose={handleStampModalClose} />
+      <CompanionUnlockModal
+        companion={completionResult?.companionUnlocked || null}
+        visible={showCompanionModal}
+        onClose={handleCompanionModalClose}
+      />
     </div>
   )
 }

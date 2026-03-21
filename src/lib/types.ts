@@ -23,15 +23,40 @@ export const THEMES: { value: Theme; label: string; icon: string; color: string 
   { value: "nature", label: "Nature", icon: "tree-pine", color: "#22C55E" },
 ]
 
-export type Companion = "bunny" | "dragon" | "bear" | "cat" | "unicorn"
+export type Companion =
+  | "bunny" | "dragon" | "bear" | "cat" | "unicorn"
+  | "owl" | "fox" | "penguin" | "dolphin" | "butterfly"
+  | "firefly" | "panda" | "hedgehog" | "turtle" | "phoenix"
 
-export const COMPANIONS: { value: Companion; label: string; emoji: string }[] = [
-  { value: "bunny", label: "Bunny", emoji: "\u{1F430}" },
-  { value: "dragon", label: "Dragon", emoji: "\u{1F409}" },
-  { value: "bear", label: "Bear", emoji: "\u{1F43B}" },
-  { value: "cat", label: "Cat", emoji: "\u{1F431}" },
-  { value: "unicorn", label: "Unicorn", emoji: "\u{1F984}" },
+export interface CompanionDef {
+  value: Companion
+  label: string
+  emoji: string
+  unlockThreshold: number // stories needed to unlock (0 = always available)
+}
+
+export const COMPANIONS: CompanionDef[] = [
+  // Base companions (always unlocked)
+  { value: "bunny", label: "Bunny", emoji: "\u{1F430}", unlockThreshold: 0 },
+  { value: "dragon", label: "Dragon", emoji: "\u{1F409}", unlockThreshold: 0 },
+  { value: "bear", label: "Bear", emoji: "\u{1F43B}", unlockThreshold: 0 },
+  { value: "cat", label: "Cat", emoji: "\u{1F431}", unlockThreshold: 0 },
+  { value: "unicorn", label: "Unicorn", emoji: "\u{1F984}", unlockThreshold: 0 },
+  // Collectible companions (unlock by reading stories)
+  { value: "owl", label: "Owl", emoji: "\u{1F989}", unlockThreshold: 5 },
+  { value: "fox", label: "Fox", emoji: "\u{1F98A}", unlockThreshold: 10 },
+  { value: "penguin", label: "Penguin", emoji: "\u{1F427}", unlockThreshold: 15 },
+  { value: "dolphin", label: "Dolphin", emoji: "\u{1F42C}", unlockThreshold: 20 },
+  { value: "butterfly", label: "Butterfly", emoji: "\u{1F98B}", unlockThreshold: 25 },
+  { value: "firefly", label: "Firefly", emoji: "\u{2728}", unlockThreshold: 30 },
+  { value: "panda", label: "Panda", emoji: "\u{1F43C}", unlockThreshold: 40 },
+  { value: "hedgehog", label: "Hedgehog", emoji: "\u{1F994}", unlockThreshold: 50 },
+  { value: "turtle", label: "Turtle", emoji: "\u{1F422}", unlockThreshold: 60 },
+  { value: "phoenix", label: "Phoenix", emoji: "\u{1F525}", unlockThreshold: 100 },
 ]
+
+export const BASE_COMPANIONS = COMPANIONS.filter((c) => c.unlockThreshold === 0)
+export const COLLECTIBLE_COMPANIONS = COMPANIONS.filter((c) => c.unlockThreshold > 0)
 
 export interface ChildProfile {
   id: string
@@ -166,4 +191,35 @@ export interface StoryGenerationRequest {
 export interface StoryGenerationResponse {
   title: string
   chapters: StoryChapter[]
+}
+
+// ── Gamification ──────────────────────────────────────────
+
+export interface StoryStamp {
+  id: string
+  childProfileId: string
+  storyId: string
+  stampType: string
+  earnedAt: string
+}
+
+export interface ReadingStreak {
+  childProfileId: string
+  currentStreak: number
+  longestStreak: number
+  lastReadDate: string | null
+  graceUsed: boolean
+}
+
+export interface UnlockedCompanion {
+  childProfileId: string
+  companionId: Companion
+  unlockedAt: string
+}
+
+export interface StoryCompleteResult {
+  stampAwarded: boolean
+  streakUpdated: boolean
+  newStreak: number
+  companionUnlocked: Companion | null
 }

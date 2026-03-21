@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { generateStory, generateStoryFromDrawing, generateImage } from "@/lib/ai"
 import { rateLimit } from "@/lib/rate-limit"
+import { moderateContent } from "@/lib/content-filter"
 import { validateAndReencodeImage } from "@/lib/image-validator"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 10 stories per minute per user
-    const { allowed } = rateLimit(user.id, 10, 60_000)
+    const { allowed } = await rateLimit(user.id)
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },
@@ -112,6 +113,16 @@ export async function POST(request: NextRequest) {
     const sanitizedPrompt = customPrompt
       ? String(customPrompt).slice(0, 500).replace(/[\x00-\x1f]/g, "")
       : undefined
+
+    if (sanitizedPrompt) {
+      const { safe, reason } = await moderateContent(sanitizedPrompt)
+      if (!safe) {
+        return NextResponse.json(
+          { error: reason || "Content not suitable for children's stories." },
+          { status: 400 }
+        )
+      }
+    }
 
     // Cap chapter count
     const safeChapterCount = Math.min(Math.max(Number(chapterCount) || 4, 1), 6)

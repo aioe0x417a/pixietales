@@ -1,9 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { UpgradeBanner } from "@/components/upgrade-banner"
+import { StreakDisplay } from "@/components/gamification/streak-display"
+import { ReadingPassport } from "@/components/gamification/reading-passport"
 import Link from "next/link"
 import {
   PlusCircle,
@@ -13,6 +16,7 @@ import {
   Star,
   Clock,
   Users,
+  BookMarked,
 } from "lucide-react"
 import { THEMES } from "@/lib/types"
 
@@ -28,6 +32,7 @@ export default function DashboardPage() {
   const activeProfile = useAppStore((s) => s.getActiveProfile())
   const stories = useAppStore((s) => s.stories)
   const setActiveProfile = useAppStore((s) => s.setActiveProfile)
+  const [showPassport, setShowPassport] = useState(false)
 
   const sortedStories = [...stories].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -68,19 +73,24 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <UpgradeBanner />
       {/* Header */}
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-text">
-          {activeProfile
-            ? `${getGreeting()}! Ready for ${activeProfile.name}'s story?`
-            : `${getGreeting()}!`}
-        </h1>
-        <p className="text-text-muted mt-1">
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-text">
+            {activeProfile
+              ? `${getGreeting()}! Ready for ${activeProfile.name}'s story?`
+              : `${getGreeting()}!`}
+          </h1>
+          <p className="text-text-muted mt-1">
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        {activeProfile && (
+          <StreakDisplay childProfileId={activeProfile.id} />
+        )}
       </div>
 
       {/* Profile Switcher */}
@@ -111,7 +121,7 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/create">
           <Card className="p-6 hover:border-primary/30 cursor-pointer group">
             <div className="flex items-center gap-4">
@@ -161,6 +171,29 @@ export default function DashboardPage() {
             </div>
           </Card>
         </Link>
+
+        {activeProfile && (
+          <button
+            onClick={() => setShowPassport((prev) => !prev)}
+            className="text-left"
+            aria-expanded={showPassport}
+            aria-controls="reading-passport-section"
+          >
+            <Card className={`p-6 cursor-pointer group transition-all ${showPassport ? "border-primary/40 bg-primary/5" : "hover:border-primary/30"}`}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-amber-400/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookMarked className="w-6 h-6 text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-semibold text-text">
+                    Passport
+                  </h3>
+                  <p className="text-sm text-text-muted">Story stamps</p>
+                </div>
+              </div>
+            </Card>
+          </button>
+        )}
       </div>
 
       {/* Quick Theme Picker */}
@@ -188,6 +221,13 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Reading Passport */}
+      {activeProfile && showPassport && (
+        <div id="reading-passport-section">
+          <ReadingPassport childProfileId={activeProfile.id} />
+        </div>
+      )}
 
       {/* Recent Stories */}
       {recentStories.length > 0 && (

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 20 TTS requests per minute per user
-    const { allowed } = rateLimit(`tts:${user.id}`, 20, 60_000)
+    const { allowed } = await rateLimit(`tts:${user.id}`)
     if (!allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please wait a moment." },

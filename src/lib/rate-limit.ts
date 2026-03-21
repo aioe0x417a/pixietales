@@ -1,23 +1,23 @@
-// Simple in-memory rate limiter (replace with Redis/Upstash for production)
-const requests = new Map<string, { count: number; resetAt: number }>()
+import { Ratelimit } from "@upstash/ratelimit"
+import { Redis } from "@upstash/redis"
 
-export function rateLimit(
-  key: string,
-  limit: number = 10,
-  windowMs: number = 60_000
-): { allowed: boolean; remaining: number } {
-  const now = Date.now()
-  const entry = requests.get(key)
+// Graceful fallback if env vars not set (dev mode)
+const redis = process.env.UPSTASH_REDIS_REST_URL
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null
 
-  if (!entry || now > entry.resetAt) {
-    requests.set(key, { count: 1, resetAt: now + windowMs })
-    return { allowed: true, remaining: limit - 1 }
-  }
+const limiter = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, "60 s"),
+    })
+  : null
 
-  if (entry.count >= limit) {
-    return { allowed: false, remaining: 0 }
-  }
-
-  entry.count++
-  return { allowed: true, remaining: limit - entry.count }
+export async function rateLimit(key: string): Promise<{ allowed: boolean; remaining: number }> {
+  if (!limiter) return { allowed: true, remaining: 999 } // dev fallback
+  const { success, remaining } = await limiter.limit(key)
+  return { allowed: success, remaining }
 }
