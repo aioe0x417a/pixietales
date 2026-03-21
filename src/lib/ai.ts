@@ -118,7 +118,6 @@ Note: imagePrompt must always be in English regardless of story language.`
 
   // Detect truncated responses before attempting JSON parse
   const finishReason = response.choices[0]?.finish_reason
-  console.log(`[generateStory] model=${model} lang=${language} chapters=${chapterCount} finish_reason=${finishReason} content_length=${response.choices[0]?.message?.content?.length ?? 0}`)
   if (finishReason === "length") {
     throw new Error("The story was too long and got cut off. Try fewer chapters or a younger age.")
   }

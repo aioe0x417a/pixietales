@@ -151,9 +151,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Story generation error:", error)
     const message = error instanceof Error ? error.message : "Failed to generate story. Please try again."
-    const stack = error instanceof Error ? error.stack?.split("\n").slice(0, 3).join(" | ") : undefined
     return NextResponse.json(
-      { error: message, _debug: { stack, name: (error as Error)?.name } },
+      { error: message },
       { status: 500 }
     )
   }
