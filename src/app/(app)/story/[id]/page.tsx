@@ -130,13 +130,13 @@ export default function StoryReaderPage({
     }
   }, [currentChapter, story?.narrationEnabled])
 
-  // Auto-start ambient sound if arriving from bedtime mode
+  // Auto-start ambient sound when narration starts playing
   useEffect(() => {
-    if (bedtimeMode && story?.theme && !ambient.isPlaying) {
+    if (isPlaying && !ambient.isPlaying && story?.theme) {
       const soundId = getSoundForTheme(story.theme)
-      ambient.fadeIn(soundId, 0.25, 2000)
+      ambient.fadeIn(soundId, 0.4, 2000)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
+  }, [isPlaying]) // eslint-disable-line react-hooks/exhaustive-deps -- trigger on narration play state
 
   async function playChapter(chapterIdx: number) {
     setIsLoading(true)
@@ -430,7 +430,7 @@ export default function StoryReaderPage({
                     ambient.fadeOut(800)
                   } else {
                     const soundId = getSoundForTheme(story.theme)
-                    ambient.fadeIn(soundId, 0.25, 800)
+                    ambient.fadeIn(soundId, 0.4, 800)
                   }
                 }}
                 aria-label={ambient.isPlaying
