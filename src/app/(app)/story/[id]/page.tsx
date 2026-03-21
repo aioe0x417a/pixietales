@@ -415,56 +415,9 @@ export default function StoryReaderPage({
         </motion.div>
       </AnimatePresence>
 
-      {/* Navigation */}
-      <div className="flex items-center justify-between mt-10 pt-6 border-t border-primary/10">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentChapter((p) => p - 1)}
-          disabled={isFirst}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Previous
-        </Button>
-
-        {/* Chapter dots */}
-        <div className="flex items-center gap-2">
-          {story.chapters.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentChapter(i)}
-              aria-label={`Go to chapter ${i + 1}`}
-              aria-current={i === currentChapter ? "true" : undefined}
-              className={cn(
-                "w-3 h-3 rounded-full transition-all cursor-pointer",
-                i === currentChapter
-                  ? "bg-primary scale-125"
-                  : "bg-primary/20 hover:bg-primary/40"
-              )}
-            />
-          ))}
-        </div>
-
-        {isLast ? (
-          <Button onClick={() => {
-            stopPlayback()
-            router.push("/dashboard")
-          }}>
-            <Home className="w-4 h-4" />
-            Finish
-          </Button>
-        ) : (
-          <Button
-            onClick={() => setCurrentChapter((p) => p + 1)}
-          >
-            Next
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Audio Player Bar */}
-      <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md">
-        <div className="bg-surface border border-primary/10 rounded-2xl shadow-xl px-4 py-3">
+      {/* Audio Player Bar (inline) */}
+      <div className="mt-8 max-w-md mx-auto">
+        <div className="bg-surface border border-primary/10 rounded-2xl shadow-lg px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Play/Pause Button */}
             <button
@@ -524,6 +477,53 @@ export default function StoryReaderPage({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-primary/10 pb-8">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentChapter((p) => p - 1)}
+          disabled={isFirst}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Previous
+        </Button>
+
+        {/* Chapter dots */}
+        <div className="flex items-center gap-2">
+          {story.chapters.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentChapter(i)}
+              aria-label={`Go to chapter ${i + 1}`}
+              aria-current={i === currentChapter ? "true" : undefined}
+              className={cn(
+                "w-3 h-3 rounded-full transition-all cursor-pointer",
+                i === currentChapter
+                  ? "bg-primary scale-125"
+                  : "bg-primary/20 hover:bg-primary/40"
+              )}
+            />
+          ))}
+        </div>
+
+        {isLast ? (
+          <Button onClick={() => {
+            stopPlayback()
+            router.push("/dashboard")
+          }}>
+            <Home className="w-4 h-4" />
+            Finish
+          </Button>
+        ) : (
+          <Button
+            onClick={() => setCurrentChapter((p) => p + 1)}
+          >
+            Next
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        )}
       </div>
     </div>
   )
