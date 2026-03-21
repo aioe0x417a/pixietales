@@ -333,6 +333,22 @@ From the research agent's analysis of 12 competitors:
 
 ---
 
+## Technical Debt & Security Backlog
+
+From QA code review (2026-03-21). Lower priority items to address in future sprints.
+
+| # | Severity | Area | Issue | Notes |
+|---|----------|------|-------|-------|
+| 1 | Critical | AI Safety | `customPrompt` goes to LLM without content moderation | Mitigated by `role: "user"` placement + strong system prompt. Full fix: add content filter (OpenAI moderation API or similar) before forwarding. |
+| 2 | Major | Security | In-memory rate limiter resets on serverless cold starts | Replace with Redis/Upstash (`@upstash/ratelimit`). Current Map-based limiter is per-instance. |
+| 3 | Major | Reliability | Fire-and-forget Supabase sync can silently lose data | Stories exist in localStorage but may not reach DB. Add retry queue or confirmation. |
+| 4 | Major | Data | `drawingBase64` not validated as actual image before AI | Check magic bytes (PNG/JPEG/GIF/WebP) before forwarding to Gemini. |
+| 5 | Minor | Auth | `require-auth.tsx` returns `null` during loading (blank flash) | Replace with loading spinner for better UX. |
+| 6 | Minor | Auth | `supabase.ts` singleton has no server-import guard | Add `"use client"` directive or runtime check. `supabase-admin.ts` already has `"server-only"`. |
+| 7 | Minor | Security | No explicit CSRF/Origin check on API routes | Mitigated by Bearer token auth. Add Origin header check for defense-in-depth. |
+
+---
+
 ## Key Risks
 
 | Risk | Mitigation |

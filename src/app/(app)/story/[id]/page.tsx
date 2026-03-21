@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, use } from "react"
+import { useState, useEffect, useRef, use, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -9,12 +9,17 @@ import {
   BookOpen,
   Volume2,
   VolumeX,
-  Moon,
+  Pause,
+  Play,
   Trash2,
   Home,
+  Loader2,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAppStore } from "@/lib/store"
+import { NARRATION_VOICES, type NarrationVoice } from "@/lib/types"
+import { getSupabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -27,24 +32,216 @@ export default function StoryReaderPage({
   const router = useRouter()
   const story = useAppStore((s) => s.getStory(id))
   const removeStory = useAppStore((s) => s.removeStory)
+  const narrationVoice = useAppStore((s) => s.narrationVoice)
+  const setNarrationVoice = useAppStore((s) => s.setNarrationVoice)
+  const updateChapterAudioUrl = useAppStore((s) => s.updateChapterAudioUrl)
 
   const [currentChapter, setCurrentChapter] = useState(0)
-  const [readAloud, setReadAloud] = useState(false)
-  const synthRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showVoiceMenu, setShowVoiceMenu] = useState(false)
+  const [audioProgress, setAudioProgress] = useState(0)
+  const [audioDuration, setAudioDuration] = useState(0)
 
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const voiceMenuRef = useRef<HTMLDivElement>(null)
+  // Cache audio URLs per chapter+voice combo in this session
+  const audioCache = useRef<Map<string, string>>(new Map())
+
+  // Close voice menu on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (voiceMenuRef.current && !voiceMenuRef.current.contains(e.target as Node)) {
+        setShowVoiceMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      window.speechSynthesis?.cancel()
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ""
+      }
     }
   }, [])
 
+  // Stop playback when chapter changes
   useEffect(() => {
-    if (readAloud && story) {
-      speakChapter(currentChapter)
-    } else {
-      window.speechSynthesis?.cancel()
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
     }
-  }, [currentChapter, readAloud])
+    setIsPlaying(false)
+    setAudioProgress(0)
+    setAudioDuration(0)
+  }, [currentChapter])
+
+  const getCacheKey = useCallback(
+    (chapterIdx: number) => `${id}-${chapterIdx}-${narrationVoice}`,
+    [id, narrationVoice]
+  )
+
+  async function generateAudio(chapterIdx: number): Promise<string | null> {
+    const cacheKey = getCacheKey(chapterIdx)
+
+    // Check in-memory session cache
+    const cached = audioCache.current.get(cacheKey)
+    if (cached) return cached
+
+    // Check if story already has a stored audioUrl for this chapter
+    const chap = story?.chapters[chapterIdx]
+    if (chap?.audioUrl && !chap.audioUrl.startsWith("data:")) {
+      audioCache.current.set(cacheKey, chap.audioUrl)
+      return chap.audioUrl
+    }
+
+    try {
+      const { data: { session } } = await getSupabase().auth.getSession()
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          text: chap?.content || "",
+          voice: narrationVoice,
+          storyId: id,
+          chapterIndex: chapterIdx,
+        }),
+      })
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}))
+        throw new Error(errBody.error || `TTS failed (${response.status})`)
+      }
+
+      const { audioUrl } = await response.json()
+      audioCache.current.set(cacheKey, audioUrl)
+
+      // Persist the URL to the store (syncs to Supabase)
+      updateChapterAudioUrl(id, chapterIdx, audioUrl)
+
+      return audioUrl
+    } catch (err) {
+      console.error("TTS generation error:", err)
+      toast.error((err as Error).message || "Failed to generate narration")
+      return null
+    }
+  }
+
+  async function playChapter(chapterIdx: number) {
+    setIsLoading(true)
+
+    const audioUrl = await generateAudio(chapterIdx)
+    if (!audioUrl) {
+      setIsLoading(false)
+      return
+    }
+
+    // Create or reuse audio element
+    if (!audioRef.current) {
+      audioRef.current = new Audio()
+    }
+
+    const audio = audioRef.current
+    audio.src = audioUrl
+    audio.load()
+
+    audio.onloadedmetadata = () => {
+      setAudioDuration(audio.duration)
+    }
+
+    audio.ontimeupdate = () => {
+      setAudioProgress(audio.currentTime)
+    }
+
+    audio.onended = () => {
+      setIsPlaying(false)
+      setAudioProgress(0)
+      // Auto-advance to next chapter
+      if (story && chapterIdx < story.chapters.length - 1) {
+        const nextIdx = chapterIdx + 1
+        setCurrentChapter(nextIdx)
+        // Auto-play next chapter after a brief pause
+        setTimeout(() => playChapter(nextIdx), 500)
+      }
+    }
+
+    audio.onerror = () => {
+      setIsPlaying(false)
+      setIsLoading(false)
+      toast.error("Audio playback failed")
+    }
+
+    try {
+      await audio.play()
+      setIsPlaying(true)
+    } catch {
+      toast.error("Audio playback failed")
+    }
+    setIsLoading(false)
+  }
+
+  function togglePlayback() {
+    if (isLoading) return
+
+    if (isPlaying && audioRef.current) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+    } else if (audioRef.current?.src && audioRef.current.src !== window.location.href) {
+      // Resume existing audio
+      audioRef.current.play()
+      setIsPlaying(true)
+    } else {
+      // Start fresh
+      playChapter(currentChapter)
+    }
+  }
+
+  function stopPlayback() {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+    }
+    setIsPlaying(false)
+    setAudioProgress(0)
+    setAudioDuration(0)
+  }
+
+  function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
+    const time = parseFloat(e.target.value)
+    if (audioRef.current) {
+      audioRef.current.currentTime = time
+      setAudioProgress(time)
+    }
+  }
+
+  function handleVoiceChange(voice: NarrationVoice) {
+    setNarrationVoice(voice)
+    setShowVoiceMenu(false)
+    // Stop current playback since voice changed
+    stopPlayback()
+  }
+
+  function handleDelete() {
+    if (confirm("Delete this story? This cannot be undone.")) {
+      stopPlayback()
+      removeStory(story!.id)
+      toast.success("Story deleted")
+      router.push("/library")
+    }
+  }
+
+  function formatTime(seconds: number) {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m}:${s.toString().padStart(2, "0")}`
+  }
 
   if (!story) {
     return (
@@ -63,6 +260,7 @@ export default function StoryReaderPage({
   const chapter = story.chapters[currentChapter]
   const isFirst = currentChapter === 0
   const isLast = currentChapter === story.chapters.length - 1
+  const selectedVoice = NARRATION_VOICES.find((v) => v.value === narrationVoice)
 
   if (!chapter) {
     return (
@@ -78,80 +276,75 @@ export default function StoryReaderPage({
     )
   }
 
-  function speakChapter(index: number) {
-    window.speechSynthesis?.cancel()
-    const chap = story!.chapters[index]
-    if (!chap) return
-
-    const utterance = new SpeechSynthesisUtterance(chap.content)
-    utterance.rate = 0.85
-    utterance.pitch = 1.1
-    utterance.volume = 0.9
-
-    // Try to find a good voice
-    const voices = window.speechSynthesis?.getVoices() || []
-    const preferred = voices.find(
-      (v) =>
-        v.name.includes("Samantha") ||
-        v.name.includes("Karen") ||
-        v.name.includes("female") ||
-        v.lang.startsWith("en")
-    )
-    if (preferred) utterance.voice = preferred
-
-    utterance.onend = () => {
-      if (!isLast) {
-        setCurrentChapter((prev) => prev + 1)
-      } else {
-        setReadAloud(false)
-      }
-    }
-
-    synthRef.current = utterance
-    window.speechSynthesis?.speak(utterance)
-  }
-
-  function toggleReadAloud() {
-    if (readAloud) {
-      window.speechSynthesis?.cancel()
-      setReadAloud(false)
-    } else {
-      setReadAloud(true)
-    }
-  }
-
-  function handleDelete() {
-    if (confirm("Delete this story? This cannot be undone.")) {
-      removeStory(story!.id)
-      toast.success("Story deleted")
-      router.push("/library")
-    }
-  }
-
   return (
     <div className="max-w-3xl mx-auto">
       {/* Top Bar */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={() => router.push("/library")}
+          onClick={() => {
+            stopPlayback()
+            router.push("/library")
+          }}
           className="flex items-center gap-2 text-text-muted hover:text-primary transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleReadAloud}
-            aria-label={readAloud ? "Stop reading aloud" : "Read story aloud"}
-          >
-            {readAloud ? (
-              <VolumeX className="w-5 h-5" />
-            ) : (
-              <Volume2 className="w-5 h-5" />
-            )}
-          </Button>
+          {/* Voice Selector */}
+          <div className="relative" ref={voiceMenuRef}>
+            <button
+              onClick={() => setShowVoiceMenu(!showVoiceMenu)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-text-muted hover:text-primary hover:bg-primary/5 transition-all cursor-pointer"
+              aria-label="Select narration voice"
+            >
+              <Volume2 className="w-4 h-4" />
+              {selectedVoice?.label || "Voice"}
+              <ChevronDown className={cn(
+                "w-3 h-3 transition-transform",
+                showVoiceMenu && "rotate-180"
+              )} />
+            </button>
+
+            <AnimatePresence>
+              {showVoiceMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-1 bg-surface border border-primary/10 rounded-xl shadow-xl z-50 overflow-hidden min-w-[200px]"
+                >
+                  <div className="p-2">
+                    <p className="px-3 py-1.5 text-xs font-semibold text-text-muted uppercase tracking-wider">
+                      Narration Voice
+                    </p>
+                    {NARRATION_VOICES.map((voice) => (
+                      <button
+                        key={voice.value}
+                        onClick={() => handleVoiceChange(voice.value)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
+                          narrationVoice === voice.value
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-primary/5 text-text"
+                        )}
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">{voice.label}</p>
+                          <p className="text-xs text-text-muted">{voice.description}</p>
+                        </div>
+                        {narrationVoice === voice.value && (
+                          <div className="w-2 h-2 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <Button
             variant="ghost"
             size="sm"
@@ -252,7 +445,10 @@ export default function StoryReaderPage({
         </div>
 
         {isLast ? (
-          <Button onClick={() => router.push("/dashboard")}>
+          <Button onClick={() => {
+            stopPlayback()
+            router.push("/dashboard")
+          }}>
             <Home className="w-4 h-4" />
             Finish
           </Button>
@@ -266,19 +462,69 @@ export default function StoryReaderPage({
         )}
       </div>
 
-      {/* Reading indicator */}
-      {readAloud && (
-        <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 bg-primary text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 z-50">
-          <Volume2 className="w-5 h-5 animate-pulse" />
-          <span className="font-semibold text-sm">Reading aloud...</span>
-          <button
-            onClick={toggleReadAloud}
-            className="text-white/80 hover:text-white cursor-pointer"
-          >
-            Stop
-          </button>
+      {/* Audio Player Bar */}
+      <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md">
+        <div className="bg-surface border border-primary/10 rounded-2xl shadow-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Play/Pause Button */}
+            <button
+              onClick={togglePlayback}
+              disabled={isLoading}
+              className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all cursor-pointer",
+                isPlaying
+                  ? "bg-primary text-white"
+                  : "bg-primary/10 text-primary hover:bg-primary/20"
+              )}
+              aria-label={isPlaying ? "Pause narration" : "Play narration"}
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : isPlaying ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5" />
+              )}
+            </button>
+
+            {/* Progress + Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold text-text truncate">
+                  Ch. {currentChapter + 1}: {chapter.title}
+                </p>
+                {audioDuration > 0 && (
+                  <span className="text-[10px] text-text-muted ml-2 shrink-0">
+                    {formatTime(audioProgress)} / {formatTime(audioDuration)}
+                  </span>
+                )}
+              </div>
+              {/* Progress bar */}
+              <input
+                type="range"
+                min={0}
+                max={audioDuration || 0}
+                step={0.1}
+                value={audioProgress}
+                onChange={handleSeek}
+                className="w-full h-1 bg-primary/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                aria-label="Audio progress"
+              />
+            </div>
+
+            {/* Stop Button */}
+            {(isPlaying || audioProgress > 0) && (
+              <button
+                onClick={stopPlayback}
+                className="text-text-muted hover:text-error transition-colors cursor-pointer p-1"
+                aria-label="Stop narration"
+              >
+                <VolumeX className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

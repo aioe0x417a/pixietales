@@ -48,7 +48,23 @@ export interface StoryChapter {
   content: string
   imageUrl?: string
   imagePrompt?: string
+  audioUrl?: string
 }
+
+export type NarrationVoice =
+  | "en-US-JennyNeural"
+  | "en-US-AnaNeural"
+  | "en-US-AriaNeural"
+  | "en-US-GuyNeural"
+  | "en-US-MichelleNeural"
+
+export const NARRATION_VOICES: { value: NarrationVoice; label: string; description: string }[] = [
+  { value: "en-US-JennyNeural", label: "Jenny", description: "Warm & gentle" },
+  { value: "en-US-AnaNeural", label: "Ana", description: "Child voice" },
+  { value: "en-US-AriaNeural", label: "Aria", description: "Confident narrator" },
+  { value: "en-US-GuyNeural", label: "Guy", description: "Warm male" },
+  { value: "en-US-MichelleNeural", label: "Michelle", description: "Gentle & soothing" },
+]
 
 export interface Story {
   id: string

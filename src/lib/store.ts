@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import type { ChildProfile, Story, StoryChapter } from "./types"
+import type { ChildProfile, Story, StoryChapter, NarrationVoice } from "./types"
 import { generateId } from "./utils"
 import { getSupabase } from "./supabase"
 
@@ -26,6 +26,11 @@ export interface AppStore {
   // UI State
   bedtimeMode: boolean
   setBedtimeMode: (on: boolean) => void
+
+  // Narration
+  narrationVoice: NarrationVoice
+  setNarrationVoice: (voice: NarrationVoice) => void
+  updateChapterAudioUrl: (storyId: string, chapterIndex: number, audioUrl: string) => void
 
   // Supabase sync
   loadFromSupabase: () => Promise<void>
@@ -91,6 +96,7 @@ async function syncStoryToSupabase(story: Story) {
       content: ch.content,
       image_prompt: ch.imagePrompt || null,
       image_url: ch.imageUrl || null,
+      audio_url: ch.audioUrl || null,
     }))
 
     await supabase.from("story_chapters").insert(chapters)
@@ -184,12 +190,31 @@ export const useAppStore = create<AppStore>()(
       bedtimeMode: false,
       setBedtimeMode: (on) => set({ bedtimeMode: on }),
 
+      // Narration
+      narrationVoice: "en-US-JennyNeural" as NarrationVoice,
+      setNarrationVoice: (voice) => set({ narrationVoice: voice }),
+      updateChapterAudioUrl: (storyId, chapterIndex, audioUrl) => {
+        set((s) => ({
+          stories: s.stories.map((story) => {
+            if (story.id !== storyId) return story
+            const chapters = story.chapters.map((ch, i) =>
+              i === chapterIndex ? { ...ch, audioUrl } : ch
+            )
+            return { ...story, chapters }
+          }),
+        }))
+        // Sync updated story to Supabase
+        const updated = get().stories.find((s) => s.id === storyId)
+        if (updated) syncStoryToSupabase(updated)
+      },
+
       // Reset store on sign-out (clear user data from localStorage)
       resetStore: () => set({
         profiles: [],
         activeProfileId: null,
         stories: [],
         bedtimeMode: false,
+        narrationVoice: "en-US-JennyNeural" as NarrationVoice,
       }),
 
       // Supabase sync: load all data for the logged-in user
@@ -226,6 +251,7 @@ export const useAppStore = create<AppStore>()(
                 content: ch.content,
                 imagePrompt: ch.image_prompt || undefined,
                 imageUrl: ch.image_url || undefined,
+                audioUrl: ch.audio_url || undefined,
               })
               chaptersByStory.set(ch.story_id, arr)
             }
