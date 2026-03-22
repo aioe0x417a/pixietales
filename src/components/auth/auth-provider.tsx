@@ -48,6 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
         if (event === "SIGNED_IN" && session?.user) {
           loadFromSupabase()
+          // Clean hash fragment tokens from URL (OAuth implicit flow)
+          if (typeof window !== "undefined" && window.location.hash.includes("access_token")) {
+            window.history.replaceState(null, "", window.location.pathname + window.location.search)
+          }
         }
         if (event === "SIGNED_OUT") {
           useAppStore.getState().resetStore()

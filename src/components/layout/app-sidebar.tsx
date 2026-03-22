@@ -22,7 +22,6 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: Sparkles },
   { href: "/create", label: "Create Story", icon: PlusCircle },
   { href: "/library", label: "My Bookshelf", icon: Library },
-  { href: "/dashboard", label: "Reading Passport", icon: BookMarked },
   { href: "/profiles", label: "Child Profiles", icon: Users },
   { href: "/bedtime", label: "Bedtime Mode", icon: Moon },
   { href: "/settings", label: "Settings", icon: Settings },
