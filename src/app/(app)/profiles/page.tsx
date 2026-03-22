@@ -18,6 +18,7 @@ import { useAppStore } from "@/lib/store"
 import {
   THEMES,
   COMPANIONS,
+  BASE_COMPANIONS,
   type Theme,
   type Companion,
   type ChildProfile,
@@ -190,10 +191,10 @@ export default function ProfilesPage() {
                 {/* Companion */}
                 <div>
                   <label className="block text-sm font-semibold text-text mb-2">
-                    Story Companion
+                    Favorite Companion
                   </label>
-                  <div className="flex gap-3">
-                    {COMPANIONS.map((comp) => (
+                  <div className="grid grid-cols-5 gap-2">
+                    {BASE_COMPANIONS.map((comp) => (
                       <button
                         key={comp.value}
                         type="button"

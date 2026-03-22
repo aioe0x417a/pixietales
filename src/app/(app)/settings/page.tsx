@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2, CreditCard, Loader2, AlertTriangle } from "lucide-react"
+import { Trash2, CreditCard, Loader2, AlertTriangle, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { getSupabase } from "@/lib/supabase"
@@ -116,6 +116,23 @@ export default function SettingsPage() {
             <CreditCard className="w-4 h-4" />
           )}
           Manage Subscription
+        </Button>
+      </section>
+
+      {/* Sign Out */}
+      <section className="bg-surface rounded-2xl border border-primary/10 p-6 space-y-4">
+        <h2 className="font-heading text-lg font-semibold text-text">Sign Out</h2>
+        <p className="text-sm text-text-muted">Sign out of your account on this device.</p>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await getSupabase().auth.signOut()
+            router.push("/")
+          }}
+          className="flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
         </Button>
       </section>
 

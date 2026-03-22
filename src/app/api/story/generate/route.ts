@@ -6,7 +6,11 @@ import { moderateContent } from "@/lib/content-filter"
 import { validateAndReencodeImage } from "@/lib/image-validator"
 import type { StoryGenerationRequest, StoryChapter } from "@/lib/types"
 
-const VALID_COMPANIONS = ["bunny", "dragon", "bear", "cat", "unicorn"]
+const VALID_COMPANIONS = [
+  "bunny", "dragon", "bear", "cat", "unicorn",
+  "owl", "fox", "penguin", "dolphin", "butterfly",
+  "firefly", "panda", "hedgehog", "turtle", "phoenix",
+]
 const VALID_THEMES = ["adventure", "animals", "space", "ocean", "friendship", "magic", "dinosaurs", "princesses", "superheroes", "nature", "custom"]
 const VALID_LANGUAGES = ["en", "ms", "zh", "ta", "th"]
 
