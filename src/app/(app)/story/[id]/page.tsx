@@ -26,6 +26,7 @@ import { toast } from "sonner"
 import { CelebrationAnimation } from "@/components/gamification/celebration-animation"
 import { StampEarnedModal } from "@/components/gamification/stamp-earned-modal"
 import { CompanionUnlockModal } from "@/components/gamification/companion-unlock-modal"
+import { GardenBloomModal } from "@/components/garden/garden-bloom-modal"
 import { onStoryComplete } from "@/lib/gamification"
 import type { StoryCompleteResult } from "@/lib/types"
 
@@ -55,6 +56,8 @@ export default function StoryReaderPage({
   const [showCelebration, setShowCelebration] = useState(false)
   const [showStampModal, setShowStampModal] = useState(false)
   const [showCompanionModal, setShowCompanionModal] = useState(false)
+  const [showGardenBloomModal, setShowGardenBloomModal] = useState(false)
+  const [bloomedPlantType, setBloomedPlantType] = useState<string | null>(null)
   const [completionResult, setCompletionResult] = useState<StoryCompleteResult | null>(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -285,6 +288,9 @@ export default function StoryReaderPage({
     stopPlayback()
     const result = await onStoryComplete(story!.childProfileId, story!.id)
     setCompletionResult(result)
+    if (result.gardenPlantBloomed && result.bloomedPlantType) {
+      setBloomedPlantType(result.bloomedPlantType)
+    }
     setShowCelebration(true)
   }
 
@@ -301,6 +307,17 @@ export default function StoryReaderPage({
 
   const handleStampModalClose = () => {
     setShowStampModal(false)
+    if (bloomedPlantType) {
+      setShowGardenBloomModal(true)
+    } else if (completionResult?.companionUnlocked) {
+      setShowCompanionModal(true)
+    } else {
+      router.push("/dashboard")
+    }
+  }
+
+  const handleGardenBloomClose = () => {
+    setShowGardenBloomModal(false)
     if (completionResult?.companionUnlocked) {
       setShowCompanionModal(true)
     } else {
@@ -694,6 +711,12 @@ export default function StoryReaderPage({
         <CelebrationAnimation onComplete={handleCelebrationComplete} />
       )}
       <StampEarnedModal visible={showStampModal} onClose={handleStampModalClose} />
+      {showGardenBloomModal && bloomedPlantType && (
+        <GardenBloomModal
+          plantType={bloomedPlantType}
+          onClose={handleGardenBloomClose}
+        />
+      )}
       <CompanionUnlockModal
         companion={completionResult?.companionUnlocked || null}
         visible={showCompanionModal}

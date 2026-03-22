@@ -222,4 +222,26 @@ export interface StoryCompleteResult {
   streakUpdated: boolean
   newStreak: number
   companionUnlocked: Companion | null
+  gardenPlantPlanted: boolean
+  gardenPlantBloomed: boolean
+  bloomedPlantType: PlantTypeId | null
+}
+
+// ── Garden ──────────────────────────────────────────────
+
+export type GrowthStage = "seed" | "sprout" | "bloom"
+
+export type PlantTypeId =
+  | "moonflower" | "starbloom" | "crystal_fern"
+  | "nebula_orchid" | "aurora_vine" | "void_lily" | "comet_rose"
+
+export interface GardenPlant {
+  id: string
+  childProfileId: string
+  plantType: PlantTypeId
+  stampIndex: number
+  gridCol: number
+  gridRow: number
+  plantedAt: string
+  growthStage: GrowthStage
 }

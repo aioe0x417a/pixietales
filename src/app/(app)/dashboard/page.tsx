@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { UpgradeBanner } from "@/components/upgrade-banner"
 import { StreakDisplay } from "@/components/gamification/streak-display"
 import { ReadingPassport } from "@/components/gamification/reading-passport"
+import { GardenPreview } from "@/components/garden/garden-preview"
 import Link from "next/link"
 import {
   PlusCircle,
@@ -227,6 +228,11 @@ export default function DashboardPage() {
         <div id="reading-passport-section">
           <ReadingPassport childProfileId={activeProfile.id} />
         </div>
+      )}
+
+      {/* Growing Garden */}
+      {activeProfile && (
+        <GardenPreview childProfileId={activeProfile.id} />
       )}
 
       {/* Recent Stories */}

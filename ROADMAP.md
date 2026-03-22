@@ -97,69 +97,69 @@ Mandatory for ages 1-6. Architecture decisions:
 
 ## Feature Roadmap
 
-### Phase 1 -- MVP (Web Launch)
+### Phase 1 -- MVP (Web Launch) ✅
 
-The minimum product to launch, get users, and validate demand.
+The minimum product to launch, get users, and validate demand. **All items complete.**
 
-#### 1.1 AI Story Generator
+#### 1.1 AI Story Generator ✅
 - Parent picks a theme from curated categories: Adventure, Animals, Space, Ocean, Friendship, Magic, Dinosaurs, Princesses, Superheroes, Nature
 - OR parent types a custom prompt ("a story about a brave little cat who learns to swim")
 - AI generates a 300-500 word story with 3-5 chapters
 - Story length/vocabulary adapts to child's age (1-2: ~150 words simple; 3-4: ~300 words; 5-6: ~500 words richer)
 - Each chapter gets a title
 
-#### 1.2 AI Illustrations
+#### 1.2 AI Illustrations ✅
 - Each chapter gets a generated illustration via Gemini image generation API
 - Consistent art style across all chapters (locked via server-side style prompt)
 - Style: soft watercolor / storybook aesthetic, warm colors, child-friendly
 - Cached in Supabase Storage, served via CDN
 
-#### 1.3 Audio Narration
+#### 1.3 Audio Narration ✅
 - ElevenLabs TTS reads the story aloud
 - 2-3 voice options at launch: warm storyteller, gentle whisper (bedtime), friendly narrator
 - Word-by-word highlight sync during playback (read-along mode)
 - Sleep fade -- audio gradually reduces volume at story end
 - Audio cached per story in Supabase Storage
 
-#### 1.4 Drawing-to-Story
+#### 1.4 Drawing-to-Story ✅
 - Upload a drawing (photo or file)
 - AI analyzes the drawing and generates a story around it
 - Chain multiple drawings for multi-chapter adventures
 - Carried over from StoryWeaver, rebuilt with server-side AI pipeline
 
-#### 1.5 Child Profiles
+#### 1.5 Child Profiles ✅
 - Parent account manages up to 5 child profiles (premium) or 1 (free)
 - Each profile: name, age, favorite themes
 - Profile selector on app launch ("Who's reading tonight?")
 - Separate story libraries per child
 - Age-adaptive content filtering
 
-#### 1.6 Personalization
+#### 1.6 Personalization ✅
 - Child's name woven into every story automatically
 - Favorite companion character (bunny, dragon, bear, cat, unicorn) appears across stories
 - Theme preferences learned from usage (surface more of what they engage with)
 
-#### 1.7 Story Library (Bookshelf)
+#### 1.7 Story Library (Bookshelf) ✅
 - Visual bookshelf UI showing saved stories with cover illustrations
 - Pre-generated popular stories for instant access (no generation wait)
 - Search/filter by theme, date, child profile
 - Delete stories
 
-#### 1.8 Bedtime Mode
+#### 1.8 Bedtime Mode ✅
 - Wind-down sequence: ambient music (2 min) → breathing exercise (1 min) → story → sleep sounds
 - Auto-dims screen to warm amber palette
 - Timer: stop after N stories or N minutes
 - "Last story" indicator to set expectations
 - Screen-free audio option (screen goes dark, audio plays)
 
-#### 1.9 Auth & Billing
+#### 1.9 Auth & Billing ✅
 - Supabase Auth (email magic link + Google OAuth)
 - Stripe subscriptions: Free, Family ($7.99/mo), Annual ($59.99/yr)
 - 7-day free trial with full access
 - Parental consent flow with COPPA compliance
 - Webhook sync between Stripe and Supabase
 
-#### 1.10 Landing Page
+#### 1.10 Landing Page ✅
 - Beautiful marketing page explaining the product
 - Demo story playback (no sign-up required)
 - Pricing section
@@ -172,12 +172,12 @@ The minimum product to launch, get users, and validate demand.
 
 Features that make users stick around and tell others about it.
 
-#### 2.1 Gamification
-- **Story Stamps** -- reading passport, stamp after each story
-- **Collectible Companions** -- unlock new characters every 5 stories
+#### 2.1 Gamification (Partial ✅)
+- ✅ **Story Stamps** -- reading passport, stamp after each story
+- ✅ **Collectible Companions** -- unlock new characters every 5 stories (15 total, 5 base + 10 collectible)
 - **Growing Garden** -- plant seeds that bloom as stories are read
-- **Nightly Streaks** -- moon icon stays lit (1 grace day for missed nights)
-- **Celebration Animations** -- 3-second firefly/star burst after each story
+- ✅ **Nightly Streaks** -- moon icon stays lit (1 grace day for missed nights)
+- ✅ **Celebration Animations** -- 3-second firefly/star burst after each story
 
 #### 2.2 Sleep Sounds Library
 - Rain, ocean, forest night, gentle wind, white noise, lullabies
@@ -339,13 +339,13 @@ From QA code review (2026-03-21). Lower priority items to address in future spri
 
 | # | Severity | Area | Issue | Notes |
 |---|----------|------|-------|-------|
-| 1 | Critical | AI Safety | `customPrompt` goes to LLM without content moderation | Mitigated by `role: "user"` placement + strong system prompt. Full fix: add content filter (OpenAI moderation API or similar) before forwarding. |
-| 2 | Major | Security | In-memory rate limiter resets on serverless cold starts | Replace with Redis/Upstash (`@upstash/ratelimit`). Current Map-based limiter is per-instance. |
-| 3 | Major | Reliability | Fire-and-forget Supabase sync can silently lose data | Stories exist in localStorage but may not reach DB. Add retry queue or confirmation. |
-| 4 | Major | Data | `drawingBase64` not validated as actual image before AI | Check magic bytes (PNG/JPEG/GIF/WebP) before forwarding to Gemini. |
-| 5 | Minor | Auth | `require-auth.tsx` returns `null` during loading (blank flash) | Replace with loading spinner for better UX. |
+| 1 | ✅ Fixed | AI Safety | `customPrompt` goes to LLM without content moderation | Fixed: OpenAI Moderation API + keyword fallback in `content-filter.ts`. |
+| 2 | ✅ Fixed | Security | In-memory rate limiter resets on serverless cold starts | Fixed: Replaced with Upstash Redis sliding window (`@upstash/ratelimit`). |
+| 3 | ✅ Fixed | Reliability | Fire-and-forget Supabase sync can silently lose data | Fixed: localStorage-backed retry queue with exponential backoff in `sync-queue.ts`. |
+| 4 | ✅ Fixed | Data | `drawingBase64` not validated as actual image before AI | Fixed: `image-validator.ts` checks magic bytes and re-encodes via sharp. |
+| 5 | ✅ Fixed | Auth | `require-auth.tsx` returns `null` during loading (blank flash) | Fixed: Shows Loader2 spinner with "Loading..." text. |
 | 6 | Minor | Auth | `supabase.ts` singleton has no server-import guard | Add `"use client"` directive or runtime check. `supabase-admin.ts` already has `"server-only"`. |
-| 7 | Minor | Security | No explicit CSRF/Origin check on API routes | Mitigated by Bearer token auth. Add Origin header check for defense-in-depth. |
+| 7 | ✅ Fixed | Security | No explicit CSRF/Origin check on API routes | Fixed: Middleware validates Origin header matches Host on all mutating API requests. |
 | 8 | Enhancement | TTS | Full SSML support for expressive narration | `@andresaya/edge-tts` escapes XML input. Build custom WebSocket wrapper to send raw SSML for `<break>`, `<emphasis>`, `mstts:express-as` (style/role). Enables whispering, cheerful, sad styles + grandparent role simulation. |
 | 9 | Enhancement | TTS | Google Cloud TTS as premium voice tier | Add `en-US-Studio-O`, `en-GB-Studio-B` etc. behind paywall. Neural2 tier has 1M chars/month free. Requires GCP service account + billing. |
 
@@ -376,4 +376,4 @@ From QA code review (2026-03-21). Lower priority items to address in future spri
 
 ---
 
-*Last updated: 2026-03-21*
+*Last updated: 2026-03-22*

@@ -5,8 +5,10 @@ import type {
   ReadingStreak,
   UnlockedCompanion,
   StoryCompleteResult,
+  PlantTypeId,
 } from "@/lib/types"
 import { COMPANIONS } from "@/lib/types"
+import { plantSeed, getGrowthStage, getPlantType } from "@/lib/garden"
 
 // ── Award a stamp for completing a story ─────────────────
 
@@ -246,11 +248,37 @@ export async function onStoryComplete(
   // 3. Check companion unlock
   const companionUnlocked = await checkCompanionUnlock(childProfileId)
 
+  // 4. Plant a garden seed
+  const { count: totalStamps } = await getSupabase()
+    .from("story_stamps")
+    .select("*", { count: "exact", head: true })
+    .eq("child_profile_id", childProfileId)
+
+  const stampCount = totalStamps || 0
+  const gardenPlant = await plantSeed(childProfileId, stampCount)
+
+  // Check if any existing plant just bloomed (delta went from 1 to 2)
+  let gardenPlantBloomed = false
+  let bloomedPlantType: PlantTypeId | null = null
+  if (stampCount >= 3) {
+    // The plant that was planted 2 stories ago just reached bloom
+    const bloomedIndex = stampCount - 2
+    const stage = getGrowthStage(bloomedIndex, stampCount)
+    const prevStage = getGrowthStage(bloomedIndex, stampCount - 1)
+    if (stage === "bloom" && prevStage === "sprout") {
+      bloomedPlantType = getPlantType(bloomedIndex).id
+      gardenPlantBloomed = true
+    }
+  }
+
   return {
     stampAwarded: !!stamp,
     streakUpdated: true,
     newStreak: streak.currentStreak,
     companionUnlocked,
+    gardenPlantPlanted: !!gardenPlant,
+    gardenPlantBloomed,
+    bloomedPlantType,
   }
 }
 
