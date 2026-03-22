@@ -137,8 +137,8 @@ export default function SettingsPage() {
       </section>
 
       {/* Delete account */}
-      <section className="bg-surface rounded-2xl border border-red-500/20 p-6 space-y-4">
-        <h2 className="font-heading text-lg font-semibold text-red-500 flex items-center gap-2">
+      <section className="bg-surface rounded-2xl border border-error/20 p-6 space-y-4">
+        <h2 className="font-heading text-lg font-semibold text-error flex items-center gap-2">
           <AlertTriangle className="w-5 h-5" />
           Danger Zone
         </h2>
@@ -157,11 +157,11 @@ export default function SettingsPage() {
             Delete Account
           </Button>
         ) : (
-          <div className="space-y-4 border border-red-500/30 rounded-xl p-4 bg-red-500/5">
+          <div className="space-y-4 border border-error/30 rounded-xl p-4 bg-error/5">
             <p className="text-sm font-semibold text-text">
               To confirm deletion, answer this question:
             </p>
-            <p className="text-base font-bold text-red-500">{challenge.question}</p>
+            <p className="text-base font-bold text-error">{challenge.question}</p>
             <Input
               type="number"
               value={challengeAnswer}

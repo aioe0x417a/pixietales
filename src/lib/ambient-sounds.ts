@@ -1,12 +1,12 @@
 import type { Theme } from "./types"
 
 export const AMBIENT_SOUNDS = [
-  { id: "rain", name: "Gentle Rain", icon: "CloudRain", color: "#0EA5E9" },
-  { id: "ocean", name: "Ocean Waves", icon: "Waves", color: "#06B6D4" },
-  { id: "forest", name: "Forest Night", icon: "TreePine", color: "#22C55E" },
-  { id: "wind", name: "Gentle Wind", icon: "Wind", color: "#A78BFA" },
-  { id: "lullaby", name: "Lullaby", icon: "Music", color: "#EC4899" },
-  { id: "white-noise", name: "White Noise", icon: "CloudMoon", color: "#6B7280" },
+  { id: "rain", name: "Gentle Rain", icon: "CloudRain", color: "#38BDF8" },
+  { id: "ocean", name: "Ocean Waves", icon: "Waves", color: "#22D3EE" },
+  { id: "forest", name: "Forest Night", icon: "TreePine", color: "#4ADE80" },
+  { id: "wind", name: "Gentle Wind", icon: "Wind", color: "#C4B5FD" },
+  { id: "lullaby", name: "Lullaby", icon: "Music", color: "#F472B6" },
+  { id: "white-noise", name: "White Noise", icon: "CloudMoon", color: "#9CA3AF" },
 ] as const
 
 export type AmbientSoundId = (typeof AMBIENT_SOUNDS)[number]["id"]

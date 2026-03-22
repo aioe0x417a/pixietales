@@ -78,8 +78,8 @@ export function UpgradeBanner() {
     <div
       className={`rounded-xl px-4 py-3 text-sm ${
         isLimitReached
-          ? "bg-amber-50 border border-amber-200 text-amber-900"
-          : "bg-indigo-50 border border-indigo-100 text-indigo-800"
+          ? "bg-secondary/10 border border-secondary/20 text-secondary"
+          : "bg-primary/10 border border-primary/20 text-primary-light"
       }`}
       role="status"
       aria-live="polite"
@@ -93,10 +93,10 @@ export function UpgradeBanner() {
         <button
           onClick={handleUpgrade}
           disabled={upgrading}
-          className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+          className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background ${
             isLimitReached
-              ? "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500"
-              : "bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500"
+              ? "bg-secondary hover:bg-secondary/90 focus:ring-secondary"
+              : "bg-primary hover:bg-primary/90 focus:ring-primary"
           } disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label="Upgrade to Family plan for unlimited stories"
         >

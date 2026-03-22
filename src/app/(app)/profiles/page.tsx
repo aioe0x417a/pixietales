@@ -385,11 +385,11 @@ export default function ProfilesPage() {
                         style={{
                           backgroundColor: `${
                             THEMES.find((t) => t.value === theme)?.color ||
-                            "#7C3AED"
+                            "#8B5CF6"
                           }15`,
                           color:
                             THEMES.find((t) => t.value === theme)?.color ||
-                            "#7C3AED",
+                            "#8B5CF6",
                         }}
                       >
                         {THEMES.find((t) => t.value === theme)?.label}

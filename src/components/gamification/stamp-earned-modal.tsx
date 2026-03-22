@@ -41,7 +41,7 @@ export function StampEarnedModal({ visible, onClose }: StampEarnedModalProps) {
           {/* Card */}
           <motion.div
             key="stamp-modal-card"
-            className="relative z-10 w-full max-w-xs rounded-2xl bg-surface border border-amber-300/40 shadow-2xl p-8 flex flex-col items-center gap-4 text-center"
+            className="relative z-10 w-full max-w-xs rounded-2xl bg-surface border border-secondary/40 shadow-2xl p-8 flex flex-col items-center gap-4 text-center"
             initial={{ opacity: 0, scale: 0.7, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: -10 }}
@@ -59,7 +59,7 @@ export function StampEarnedModal({ visible, onClose }: StampEarnedModalProps) {
 
             {/* Pulsing golden star */}
             <motion.div
-              className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 flex items-center justify-center shadow-lg"
+              className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary-light to-secondary flex items-center justify-center shadow-lg"
               animate={{
                 scale: [1, 1.12, 1],
                 boxShadow: [
@@ -108,7 +108,7 @@ function SparkleRow() {
       {sparkles.map((s, i) => (
         <motion.span
           key={i}
-          className="text-amber-400 text-sm"
+          className="text-secondary text-sm"
           animate={{ opacity: [0.3, 1, 0.3], y: [0, -3, 0] }}
           transition={{
             duration: 1.2,

@@ -181,8 +181,8 @@ export default function DashboardPage() {
           >
             <Card className={`p-6 cursor-pointer group transition-all ${showPassport ? "border-primary/40 bg-primary/5" : "hover:border-primary/30"}`}>
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-400/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <BookMarked className="w-6 h-6 text-amber-500" />
+                <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <BookMarked className="w-6 h-6 text-secondary" />
                 </div>
                 <div>
                   <h3 className="font-heading font-semibold text-text">

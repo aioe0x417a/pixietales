@@ -598,7 +598,7 @@ function CreateStoryPage() {
                     aria-label="Toggle narration"
                   >
                     <div className={cn(
-                      "absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-transform",
+                      "absolute top-1 w-5 h-5 rounded-full bg-text shadow transition-transform",
                       narrationEnabled ? "translate-x-6" : "translate-x-1"
                     )} />
                   </button>
@@ -700,7 +700,7 @@ function CreateStoryPage() {
                   <img
                     src={drawingPreview || `data:${drawingMimeType};base64,${drawingBase64}`}
                     alt="Uploaded drawing"
-                    className="w-full max-h-64 object-contain bg-white"
+                    className="w-full max-h-64 object-contain bg-surface-alt"
                   />
                   <button
                     onClick={() => {

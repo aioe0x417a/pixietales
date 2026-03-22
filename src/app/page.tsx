@@ -33,7 +33,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-primary/10">
+      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-primary/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Sparkles className="w-7 h-7 text-primary" />
@@ -88,7 +88,7 @@ export default function LandingPage() {
                 animationDelay: `${star.d}s`,
               }}
             >
-              <Star className="text-secondary/30" size={star.s} />
+              <Star className="text-secondary/50" size={star.s} />
             </div>
           ))}
         </div>
@@ -266,7 +266,7 @@ export default function LandingPage() {
               <motion.div
                 key={i}
                 variants={fadeUp}
-                className="p-8 rounded-2xl bg-background border border-primary/5 hover:border-primary/20 hover:shadow-lg transition-all duration-300 group cursor-pointer"
+                className="p-8 rounded-2xl bg-surface border border-primary/10 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group cursor-pointer"
               >
                 <div
                   className={`w-14 h-14 rounded-xl ${feature.bg} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}
@@ -334,7 +334,7 @@ export default function LandingPage() {
               },
             ].map((item, i) => (
               <motion.div key={i} variants={fadeUp} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-5 shadow-lg shadow-primary/25">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent text-white flex items-center justify-center text-2xl font-heading font-bold mx-auto mb-5 shadow-lg shadow-primary/40">
                   {item.step}
                 </div>
                 <h3 className="font-heading text-xl font-semibold text-text mb-3">
@@ -425,8 +425,8 @@ export default function LandingPage() {
                 variants={fadeUp}
                 className={`relative p-8 rounded-2xl border-2 transition-all ${
                   plan.popular
-                    ? "border-primary bg-background shadow-xl shadow-primary/10 scale-105"
-                    : "border-primary/10 bg-background hover:border-primary/30"
+                    ? "border-primary bg-surface shadow-xl shadow-primary/20 scale-105"
+                    : "border-primary/10 bg-surface hover:border-primary/30"
                 }`}
               >
                 {plan.popular && (

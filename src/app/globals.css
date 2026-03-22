@@ -2,28 +2,28 @@
 
 /* PixieTales Design System
    Fonts: Fredoka (headings) + Nunito (body)
-   Theme: Magical bedtime storybook - purples, ambers, soft pinks
+   Theme: Dark mystical dreamy stardust - deep midnight, ethereal violet, stardust gold
 */
 
 @theme inline {
-  --color-primary: #7C3AED;
-  --color-primary-light: #A78BFA;
-  --color-primary-dark: #5B21B6;
-  --color-secondary: #F59E0B;
-  --color-secondary-light: #FCD34D;
-  --color-accent: #EC4899;
-  --color-accent-light: #F9A8D4;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F5F3FF;
-  --color-background: #FAF5FF;
-  --color-text: #1E1B4B;
-  --color-text-muted: #6B7280;
-  --color-success: #10B981;
-  --color-error: #EF4444;
-  --color-night-bg: #0F0A1A;
-  --color-night-surface: #1A1333;
-  --color-night-text: #E8E0F0;
-  --color-night-muted: #9CA3AF;
+  --color-primary: #8B5CF6;
+  --color-primary-light: #C4B5FD;
+  --color-primary-dark: #6D28D9;
+  --color-secondary: #FBBF24;
+  --color-secondary-light: #FDE68A;
+  --color-accent: #38BDF8;
+  --color-accent-light: #7DD3FC;
+  --color-surface: #151530;
+  --color-surface-alt: #1C1C3A;
+  --color-background: #0B0D1F;
+  --color-text: #E8E0F0;
+  --color-text-muted: #9B8FC4;
+  --color-success: #34D399;
+  --color-error: #F87171;
+  --color-night-bg: #060810;
+  --color-night-surface: #0E0F1F;
+  --color-night-text: #D4CCE0;
+  --color-night-muted: #7B6FA0;
 
   --font-heading: "Fredoka", sans-serif;
   --font-body: "Nunito", sans-serif;
@@ -36,13 +36,13 @@
 }
 
 :root {
-  --background: #FAF5FF;
-  --foreground: #1E1B4B;
+  --background: #0B0D1F;
+  --foreground: #E8E0F0;
 }
 
 .bedtime-mode {
-  --background: #0F0A1A;
-  --foreground: #E8E0F0;
+  --background: #060810;
+  --foreground: #D4CCE0;
 }
 
 body {
@@ -56,7 +56,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
 }
 
-/* Magical shimmer animation */
+/* Shimmer animation - ethereal violet sweep */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -66,7 +66,7 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(124, 58, 237, 0.08) 50%,
+    rgba(139, 92, 246, 0.12) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -103,10 +103,10 @@ h1, h2, h3, h4, h5, h6 {
   animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* Pulse glow */
+/* Pulse glow - primary violet */
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.4); }
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.25); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.5); }
 }
 
 .pulse-glow {
@@ -119,7 +119,56 @@ h1, h2, h3, h4, h5, h6 {
   100% { transform: perspective(1200px) rotateY(-15deg); }
 }
 
-/* Bedtime mode warm overlay */
+/* Stardust - tiny particles drifting upward with gentle sway */
+@keyframes stardust {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  20% { opacity: 1; }
+  80% { opacity: 0.6; }
+  100% {
+    transform: translateY(-80px) translateX(12px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+.stardust {
+  animation: stardust 6s ease-in-out infinite;
+}
+
+/* Nebula - subtle background hue shift cycling through primary/accent */
+@keyframes nebula {
+  0%   { filter: hue-rotate(0deg) brightness(1); }
+  25%  { filter: hue-rotate(20deg) brightness(1.04); }
+  50%  { filter: hue-rotate(-15deg) brightness(0.97); }
+  75%  { filter: hue-rotate(10deg) brightness(1.02); }
+  100% { filter: hue-rotate(0deg) brightness(1); }
+}
+
+.nebula {
+  animation: nebula 20s ease-in-out infinite;
+}
+
+/* Cosmic pulse - border/shadow oscillates between primary and accent */
+@keyframes cosmicPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(139, 92, 246, 0.3),
+      0 0 16px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.3),
+      0 0 24px rgba(56, 189, 248, 0.25);
+  }
+}
+
+.cosmic-pulse {
+  animation: cosmicPulse 4s ease-in-out infinite;
+}
+
+/* Bedtime mode transitions */
 .bedtime-mode * {
   transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
@@ -130,22 +179,44 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-surface-alt);
+  background: #151530;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary-light);
+  background: #6D28D9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
+  background: #8B5CF6;
+}
+
+/* Utility: glow card - primary glow border on hover */
+.glow-card {
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.2),
+    0 0 24px rgba(139, 92, 246, 0.15),
+    0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Utility: stardust background - radial gradient with primary hint */
+.stardust-bg {
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(139, 92, 246, 0.08) 0%,
+    #151530 40%,
+    #0B0D1F 100%
+  );
 }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .shimmer, .float, .twinkle, .pulse-glow {
+  .shimmer, .float, .twinkle, .pulse-glow, .stardust, .nebula, .cosmic-pulse {
     animation: none;
   }
 

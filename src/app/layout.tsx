@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Fredoka, Nunito } from "next/font/google"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { StardustBackground } from "@/components/stardust-background"
 import "./globals.css"
 
 const fredoka = Fredoka({
@@ -52,6 +53,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fredoka.variable} ${nunito.variable}`}>
       <body className="min-h-screen bg-background text-text antialiased">
+        <StardustBackground />
         <AuthProvider>
           {children}
         </AuthProvider>

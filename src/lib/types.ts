@@ -11,16 +11,16 @@ export type Theme =
   | "nature"
 
 export const THEMES: { value: Theme; label: string; icon: string; color: string }[] = [
-  { value: "adventure", label: "Adventure", icon: "compass", color: "#F59E0B" },
-  { value: "animals", label: "Animals", icon: "rabbit", color: "#10B981" },
-  { value: "space", label: "Space", icon: "rocket", color: "#6366F1" },
-  { value: "ocean", label: "Ocean", icon: "waves", color: "#0EA5E9" },
-  { value: "friendship", label: "Friendship", icon: "heart-handshake", color: "#EC4899" },
-  { value: "magic", label: "Magic", icon: "sparkles", color: "#A855F7" },
-  { value: "dinosaurs", label: "Dinosaurs", icon: "bone", color: "#EF4444" },
-  { value: "princesses", label: "Princesses", icon: "crown", color: "#F472B6" },
-  { value: "superheroes", label: "Superheroes", icon: "shield", color: "#3B82F6" },
-  { value: "nature", label: "Nature", icon: "tree-pine", color: "#22C55E" },
+  { value: "adventure", label: "Adventure", icon: "compass", color: "#FBBF24" },
+  { value: "animals", label: "Animals", icon: "rabbit", color: "#34D399" },
+  { value: "space", label: "Space", icon: "rocket", color: "#818CF8" },
+  { value: "ocean", label: "Ocean", icon: "waves", color: "#38BDF8" },
+  { value: "friendship", label: "Friendship", icon: "heart-handshake", color: "#F472B6" },
+  { value: "magic", label: "Magic", icon: "sparkles", color: "#A78BFA" },
+  { value: "dinosaurs", label: "Dinosaurs", icon: "bone", color: "#F87171" },
+  { value: "princesses", label: "Princesses", icon: "crown", color: "#E879F9" },
+  { value: "superheroes", label: "Superheroes", icon: "shield", color: "#FB923C" },
+  { value: "nature", label: "Nature", icon: "tree-pine", color: "#4ADE80" },
 ]
 
 export type Companion =

@@ -233,11 +233,11 @@ export default function LibraryPage() {
                       style={{
                         backgroundColor: `${
                           THEMES.find((t) => t.value === story.theme)?.color ||
-                          "#7C3AED"
+                          "#8B5CF6"
                         }15`,
                         color:
                           THEMES.find((t) => t.value === story.theme)?.color ||
-                          "#7C3AED",
+                          "#8B5CF6",
                       }}
                     >
                       {THEMES.find((t) => t.value === story.theme)?.label}

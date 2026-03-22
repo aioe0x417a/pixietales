@@ -267,7 +267,7 @@ export default function SignUpPage() {
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          <p className={`mt-1 text-xs ${password.length >= 6 ? "text-green-500" : "text-text-muted"}`}>
+          <p className={`mt-1 text-xs ${password.length >= 6 ? "text-success" : "text-text-muted"}`}>
             At least 6 characters
           </p>
         </div>
@@ -307,7 +307,7 @@ export default function SignUpPage() {
             </button>
           </div>
           {showMismatch && (
-            <p className="mt-1 text-xs text-red-500">Passwords don&apos;t match</p>
+            <p className="mt-1 text-xs text-error">Passwords don&apos;t match</p>
           )}
         </div>
 

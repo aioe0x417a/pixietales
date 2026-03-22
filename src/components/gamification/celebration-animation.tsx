@@ -211,7 +211,7 @@ export function CelebrationAnimation({ onComplete }: { onComplete: () => void })
     <AnimatePresence>
       <motion.div
         className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-        style={{ background: "rgba(10, 5, 30, 0.72)" }}
+        style={{ background: "rgba(10, 5, 30, 0.85)" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

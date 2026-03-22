@@ -117,7 +117,7 @@ export function ReadingPassport({ childProfileId }: ReadingPassportProps) {
                 title={getStoryTitle(stamp.storyId)}
               >
                 <div
-                  className="aspect-square w-full max-w-[72px] mx-auto rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"
+                  className="aspect-square w-full max-w-[72px] mx-auto rounded-full bg-gradient-to-br from-secondary to-secondary/80 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"
                   aria-label={`Stamp for ${getStoryTitle(stamp.storyId)}`}
                 >
                   {stamp.stampType === "bonus" ? (
