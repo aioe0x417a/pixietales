@@ -110,10 +110,25 @@ export async function POST(request: NextRequest) {
     const prosody = CATEGORY_PROSODY[voiceInfo?.category || "storyteller"]
 
     // Generate TTS audio
-    const tts = new EdgeTTS()
-    await tts.synthesize(text, voice, prosody)
-
-    const audioBuffer = tts.toBuffer()
+    let audioBuffer: Buffer
+    try {
+      const tts = new EdgeTTS()
+      await tts.synthesize(text, voice, prosody)
+      audioBuffer = tts.toBuffer()
+      if (!audioBuffer || audioBuffer.length === 0) {
+        console.error("TTS returned empty buffer for voice:", voice)
+        return NextResponse.json(
+          { error: "TTS returned empty audio. Try a different voice." },
+          { status: 500 }
+        )
+      }
+    } catch (ttsErr) {
+      console.error("EdgeTTS synthesize error:", ttsErr)
+      return NextResponse.json(
+        { error: `TTS synthesis failed: ${(ttsErr as Error).message}` },
+        { status: 500 }
+      )
+    }
 
     // Upload to Supabase Storage
     const { error: uploadError } = await supabaseAdmin.storage
@@ -163,9 +178,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ audioUrl: signedUrl.signedUrl })
   } catch (error) {
-    console.error("TTS error:", error)
+    console.error("TTS route error:", error)
+    const msg = (error as Error).message || "Unknown error"
     return NextResponse.json(
-      { error: "Failed to generate audio. Please try again." },
+      { error: `Failed to generate audio: ${msg}` },
       { status: 500 }
     )
   }

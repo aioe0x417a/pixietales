@@ -71,7 +71,6 @@ const GENERATION_STEPS = [
   { label: "Almost ready...", Icon: Sparkles },
 ]
 
-const GENERATION_STEP_TIMES = [0, 8000, 18000, 28000]
 
 export default function CreateStoryPageWrapper() {
   return (
@@ -114,18 +113,22 @@ function CreateStoryPage() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   // Multi-step generation progress indicator
+  // When narration is enabled: steps 0-1 are time-based (story text + images in one API call),
+  // steps 2-3 are driven by handleGenerate when TTS starts/finishes.
+  // When narration is off: all steps are time-based.
   useEffect(() => {
     if (!isGenerating) {
       setGenerationStep(0)
       return
     }
     const timers: ReturnType<typeof setTimeout>[] = []
-    GENERATION_STEP_TIMES.forEach((delay, idx) => {
-      if (idx === 0) return // step 0 is the default
-      timers.push(setTimeout(() => setGenerationStep(idx), delay))
-    })
+    timers.push(setTimeout(() => setGenerationStep(1), 8000))
+    if (!narrationEnabled) {
+      timers.push(setTimeout(() => setGenerationStep(2), 18000))
+      timers.push(setTimeout(() => setGenerationStep(3), 28000))
+    }
     return () => timers.forEach(clearTimeout)
-  }, [isGenerating])
+  }, [isGenerating, narrationEnabled])
 
   // Browser navigation guard during generation
   useEffect(() => {
@@ -256,6 +259,8 @@ function CreateStoryPage() {
     headerReader.readAsArrayBuffer(file.slice(0, 12))
   }
 
+  const updateChapterAudioUrl = useAppStore((s) => s.updateChapterAudioUrl)
+
   const handleGenerate = async () => {
     if (!selectedTheme && !drawingBase64) {
       toast.error("Please select a theme or upload a drawing")
@@ -302,6 +307,7 @@ function CreateStoryPage() {
 
       const story = await response.json()
 
+      // Save story to store immediately to get an ID
       const storyId = addStory({
         title: story.title,
         chapters: story.chapters,
@@ -313,6 +319,37 @@ function CreateStoryPage() {
         narrationVoice: narrationEnabled ? selectedVoice : undefined,
         narrationEnabled,
       })
+
+      // Pre-generate narration for all chapters in parallel while still on this page
+      if (narrationEnabled && selectedVoice) {
+        setGenerationStep(2) // "Preparing narration..."
+        const token = session?.access_token || ""
+        const ttsPromises = story.chapters.map(
+          (chapter: { content: string }, idx: number) =>
+            fetch("/api/tts", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                text: chapter.content,
+                voice: selectedVoice,
+                storyId,
+                chapterIndex: idx,
+              }),
+            })
+              .then((res) => (res.ok ? res.json() : null))
+              .then((data) => {
+                if (data?.audioUrl) {
+                  updateChapterAudioUrl(storyId, idx, data.audioUrl)
+                }
+              })
+              .catch((e) => console.warn("TTS pre-gen failed for chapter", idx, e)) // Non-fatal -- story page will retry on demand
+        )
+        await Promise.all(ttsPromises)
+        setGenerationStep(3) // "Almost ready..."
+      }
 
       succeeded = true
       toast.success("Story created!")
