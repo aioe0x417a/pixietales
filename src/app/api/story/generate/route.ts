@@ -260,9 +260,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(story)
   } catch (error) {
     console.error("Story generation error:", error)
-    const message = "Failed to generate story. Please try again."
+    const msg = (error as Error).message || "Unknown error"
     return NextResponse.json(
-      { error: message },
+      { error: `Failed to generate story: ${msg}` },
       { status: 500 }
     )
   }

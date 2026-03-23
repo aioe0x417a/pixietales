@@ -220,8 +220,8 @@ function getVisionClient() {
 }
 
 function getVisionModelId() {
-  // Dedicated vision model env var, falls back to a known vision-capable model
-  return process.env.VISION_MODEL_ID || "anthropic/claude-sonnet-4"
+  // Dedicated vision model env var, falls back to the story model (haiku-4.5 supports vision on OpenRouter)
+  return process.env.VISION_MODEL_ID || getStoryModelId()
 }
 
 export async function generateStoryFromDrawing(
@@ -240,8 +240,8 @@ export async function generateStoryFromDrawing(
     ? `\n- Write the ENTIRE story in ${langName}`
     : ""
 
-  const useOpenRouter = (process.env.VISION_MODEL_PROVIDER || process.env.STORY_MODEL_PROVIDER) === "openrouter"
-
+  // Vision + json_schema response_format is not supported by most providers.
+  // Instead, instruct the model to return JSON in the prompt and parse it ourselves.
   const response = await client.chat.completions.create({
     model,
     messages: [
@@ -254,7 +254,10 @@ Rules:
 - Include their companion: ${companion}
 - Make it a gentle bedtime story
 - End peacefully${langInstruction}
-- imagePrompt must always be in English, describing a soft watercolor children's book illustration of the scene`,
+- imagePrompt must always be in English, describing a soft watercolor children's book illustration of the scene
+
+IMPORTANT: Respond with ONLY a JSON object in this exact format, no other text:
+{"title": "Story Title", "chapters": [{"title": "Ch Title", "content": "Story text...", "imagePrompt": "A soft watercolor..."}]}`,
       },
       {
         role: "user",
@@ -266,8 +269,6 @@ Rules:
     ],
     temperature: 0.8,
     max_tokens: language !== "en" ? 8000 : 6000,
-    response_format: { type: "json_schema", json_schema: STORY_JSON_SCHEMA } as never,
-    ...(useOpenRouter ? { plugins: [{ id: "response-healing" }] } as never : {}),
   } as never)
 
   // Detect truncated responses (vision requests consume more tokens)
