@@ -58,13 +58,14 @@ export async function validateAndReencodeImage(base64Input: string): Promise<str
     }
 
     // Re-encode as PNG (strips all non-pixel data: EXIF, comments, trailing bytes, polyglot payloads)
+    // Flatten alpha onto white background (not black) to preserve drawing visibility
     // Resize if very large to keep payload reasonable for AI
-    let pipeline = sharp(buffer).removeAlpha().png({ compressionLevel: 6 })
+    let pipeline = sharp(buffer).flatten({ background: { r: 255, g: 255, b: 255 } }).png({ compressionLevel: 6 })
 
     if (metadata.width > 2048 || metadata.height > 2048) {
       pipeline = sharp(buffer)
         .resize(2048, 2048, { fit: "inside", withoutEnlargement: true })
-        .removeAlpha()
+        .flatten({ background: { r: 255, g: 255, b: 255 } })
         .png({ compressionLevel: 6 })
     }
 

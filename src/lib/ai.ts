@@ -212,6 +212,18 @@ function parseStoryJSON(content: string): StoryGenerationResponse {
   throw new Error("Story format error — please try again.")
 }
 
+// Vision-capable model for drawing-to-story (the default text model may not support images)
+function getVisionClient() {
+  const visionProvider = process.env.VISION_MODEL_PROVIDER || process.env.STORY_MODEL_PROVIDER
+  if (visionProvider === "openrouter") return getOpenRouter()
+  return getOpenAI()
+}
+
+function getVisionModelId() {
+  // Dedicated vision model env var, falls back to a known vision-capable model
+  return process.env.VISION_MODEL_ID || "anthropic/claude-sonnet-4"
+}
+
 export async function generateStoryFromDrawing(
   imageBase64: string,
   childName: string,
@@ -220,15 +232,15 @@ export async function generateStoryFromDrawing(
   language: string = "en"
 ): Promise<StoryGenerationResponse> {
   const wordRange = getWordCount(childAge)
-  const client = getStoryClient()
-  const model = getStoryModelId()
+  const client = getVisionClient()
+  const model = getVisionModelId()
 
   const langName = LANGUAGE_NAMES[language] || "English"
   const langInstruction = language !== "en"
     ? `\n- Write the ENTIRE story in ${langName}`
     : ""
 
-  const useOpenRouter = process.env.STORY_MODEL_PROVIDER === "openrouter"
+  const useOpenRouter = (process.env.VISION_MODEL_PROVIDER || process.env.STORY_MODEL_PROVIDER) === "openrouter"
 
   const response = await client.chat.completions.create({
     model,
@@ -248,7 +260,7 @@ Rules:
         role: "user",
         content: [
           { type: "text", text: `Create a bedtime story inspired by this drawing:${language !== "en" ? ` Write in ${langName}.` : ""}` },
-          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+          { type: "image_url", image_url: { url: `data:image/png;base64,${imageBase64}` } },
         ],
       },
     ],
@@ -258,8 +270,14 @@ Rules:
     ...(useOpenRouter ? { plugins: [{ id: "response-healing" }] } as never : {}),
   } as never)
 
+  // Detect truncated responses (vision requests consume more tokens)
+  const finishReason = response.choices[0]?.finish_reason
+  if (finishReason === "length") {
+    throw new Error("The story was too long and got cut off. Try fewer chapters or a younger age.")
+  }
+
   const content = response.choices[0]?.message?.content
-  if (!content) throw new Error("No story generated")
+  if (!content) throw new Error("No story generated from drawing")
 
   return parseStoryJSON(content)
 }
