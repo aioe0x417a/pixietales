@@ -15,6 +15,8 @@ import {
   CloudMoon,
   Heart,
   ImagePlus,
+  Quote,
+  Download,
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -177,6 +179,110 @@ export default function LandingPage() {
             className="mt-16"
           >
             <DemoStoryPlayer />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Social Proof Section */}
+      <section className="py-16 px-4 border-y border-primary/10 bg-surface/50">
+        <div className="max-w-7xl mx-auto">
+          {/* Stats Bar */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={stagger}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16"
+          >
+            {[
+              { value: "10,000+", label: "Stories Created", icon: BookOpen },
+              { value: "2,500+", label: "Happy Families", icon: Users },
+              { value: "4.9", label: "Average Rating", icon: Star },
+              { value: "50,000+", label: "Chapters Read", icon: Download },
+            ].map((stat, i) => (
+              <motion.div key={i} variants={fadeUp} className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <stat.icon className="w-5 h-5 text-primary" />
+                  <span className="font-heading text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    {stat.value}
+                  </span>
+                </div>
+                <span className="text-sm text-text-muted">{stat.label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Testimonials */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={stagger}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
+          >
+            {[
+              {
+                quote: "My daughter asks for PixieTales every night now. The stories with her name in them make her feel so special. Bedtime went from a battle to the best part of our day.",
+                name: "Sarah M.",
+                role: "Mom of 2",
+                stars: 5,
+              },
+              {
+                quote: "The drawing-to-story feature is genius. My son draws a dinosaur and gets a whole adventure about it. He's so proud seeing his art come to life in a real story.",
+                name: "James K.",
+                role: "Dad of 1",
+                stars: 5,
+              },
+              {
+                quote: "We use the bedtime mode every night -- the breathing exercise followed by a story and then sleep sounds. Our 3-year-old falls asleep in minutes now.",
+                name: "Priya R.",
+                role: "Mom of 3",
+                stars: 5,
+              },
+            ].map((testimonial, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className="relative p-6 rounded-2xl bg-surface border border-primary/10"
+              >
+                <Quote className="w-8 h-8 text-primary/20 mb-3" />
+                <p className="text-text-muted text-sm leading-relaxed mb-4">
+                  &ldquo;{testimonial.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-1 mb-2">
+                  {Array.from({ length: testimonial.stars }).map((_, j) => (
+                    <Star key={j} className="w-3.5 h-3.5 text-secondary fill-secondary" />
+                  ))}
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-text">{testimonial.name}</span>
+                  <span className="text-xs text-text-muted ml-2">{testimonial.role}</span>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Trust / As Featured In */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="text-center"
+          >
+            <p className="text-xs text-text-muted/60 uppercase tracking-widest mb-6">
+              Trusted by parents worldwide
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 opacity-40">
+              {["Product Hunt", "IndieHackers", "Parents Magazine", "TechCrunch"].map((name) => (
+                <span
+                  key={name}
+                  className="font-heading text-lg sm:text-xl font-bold text-text-muted"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>

@@ -25,6 +25,13 @@ export interface AppStore {
   getStoriesForProfile: (profileId: string) => Story[]
   getStory: (id: string) => Story | undefined
 
+  // Bedtime Playlist
+  playlist: string[] // story IDs in order
+  addToPlaylist: (storyId: string) => void
+  removeFromPlaylist: (storyId: string) => void
+  reorderPlaylist: (storyIds: string[]) => void
+  clearPlaylist: () => void
+
   // UI State
   bedtimeMode: boolean
   setBedtimeMode: (on: boolean) => void
@@ -160,6 +167,21 @@ export const useAppStore = create<AppStore>()(
 
       getStory: (id) => get().stories.find((s) => s.id === id),
 
+      // Bedtime Playlist
+      playlist: [],
+      addToPlaylist: (storyId) =>
+        set((s) => ({
+          playlist: s.playlist.includes(storyId)
+            ? s.playlist
+            : [...s.playlist, storyId],
+        })),
+      removeFromPlaylist: (storyId) =>
+        set((s) => ({
+          playlist: s.playlist.filter((id) => id !== storyId),
+        })),
+      reorderPlaylist: (storyIds) => set({ playlist: storyIds }),
+      clearPlaylist: () => set({ playlist: [] }),
+
       // UI State
       bedtimeMode: false,
       setBedtimeMode: (on) => set({ bedtimeMode: on }),
@@ -195,6 +217,7 @@ export const useAppStore = create<AppStore>()(
         profiles: [],
         activeProfileId: null,
         stories: [],
+        playlist: [],
         bedtimeMode: false,
         narrationVoice: "en-US-JennyNeural" as NarrationVoice,
         ambientSoundId: null,
